@@ -65,7 +65,7 @@
 #include "KvsObject_treeWidget.h"
 #include "KvsObject_treeWidgeteItem.h"
 #include "KvsObject_vBox.h"
-#if defined(COMPILE_WEBKIT_SUPPORT)
+#if defined(COMPILE_WEBENGINE_SUPPORT)
 #include "KvsObject_webView.h"
 #endif
 #include "KvsObject_widget.h"
@@ -97,7 +97,7 @@ static bool objects_module_cleanup(KviModule *)
 {
 // Don't attempt to change the order of these calls.
 // Derived classes must be unregistered before the base ones.
-#if defined(COMPILE_WEBKIT_SUPPORT)
+#if defined(COMPILE_WEBENGINE_SUPPORT)
 	KvsObject_webView::unregisterSelf();
 #endif
 	KvsObject_memoryBuffer::unregisterSelf();
@@ -247,7 +247,7 @@ static bool objects_kvs_cmd_connect(KviKvsModuleCommandCall * c)
 			<target_object>'s slot <slot_name>.
 			When one of the two objects is destroyed, the signal/slot
 			connection is automatically removed.[br]
-			WARNING: this command name collides with the [doc:RFC2812]RFC2812[/doc]
+			WARNING: this command name collides with the [anchorlink:https://tools.ietf.org/html/rfc2812]RFC2812[/anchorlink]
 			CONNECT IRC Op command: this IRC command is available to operators only
 			and is rather rarely used: you can use it by the means of [doc:raw]raw[/doc].
 		@seealso:
@@ -797,7 +797,7 @@ static bool objects_module_init(KviModule * m)
 	KvsObject_trayIcon::registerSelf();
 	KvsObject_process::registerSelf();
 	KvsObject_memoryBuffer::registerSelf();
-#if defined(COMPILE_WEBKIT_SUPPORT)
+#if defined(COMPILE_WEBENGINE_SUPPORT)
 	KvsObject_webView::registerSelf();
 #endif
 	return true;

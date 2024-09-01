@@ -29,6 +29,7 @@
 #include "KviCString.h"
 #include "KviPixmap.h"
 #include "KviMessageTypeSettings.h"
+#include "KviControlCodes.h"
 
 #include <QRect>
 #include <QPixmap>
@@ -62,13 +63,13 @@ DECLARE_OPTION_STRUCT(KviUIntOption, unsigned int)
 DECLARE_OPTION_STRUCT(KviMessageTypeSettingsOption, KviMessageTypeSettings)
 DECLARE_OPTION_STRUCT(KviStringListOption, QStringList)
 
-#define KVI_COLOR_EXT_USER_OP 50
-#define KVI_COLOR_EXT_USER_HALFOP 51
-#define KVI_COLOR_EXT_USER_ADMIN 52
-#define KVI_COLOR_EXT_USER_OWNER 53
-#define KVI_COLOR_EXT_USER_VOICE 54
-#define KVI_COLOR_EXT_USER_USEROP 55
-#define KVI_COLOR_EXT_USER_NORMAL 56
+#define KVI_COLOR_EXT_USER_OP 150
+#define KVI_COLOR_EXT_USER_HALFOP 151
+#define KVI_COLOR_EXT_USER_ADMIN 152
+#define KVI_COLOR_EXT_USER_OWNER 153
+#define KVI_COLOR_EXT_USER_VOICE 154
+#define KVI_COLOR_EXT_USER_USEROP 155
+#define KVI_COLOR_EXT_USER_NORMAL 156
 #define KVI_COLOR_CUSTOM 255
 #define KVI_COLOR_OWN 254
 
@@ -353,10 +354,11 @@ DECLARE_OPTION_STRUCT(KviStringListOption, QStringList)
 #define KviOption_boolMenuBarVisible 261
 #define KviOption_boolWarnAboutHidingMenuBar 262
 #define KviOption_boolWhoRepliesToActiveWindow 263                             /* irc::output */
+#define KviOption_boolDropConnectionOnSaslFailure 264                          /* connection::advanced */
 
 // NOTICE: REUSE EQUIVALENT UNUSED BOOL_OPTION in KviOptions.cpp ENTRIES BEFORE ADDING NEW ENTRIES ABOVE
 
-#define KVI_NUM_BOOL_OPTIONS 264
+#define KVI_NUM_BOOL_OPTIONS 265
 
 #define KVI_STRING_OPTIONS_PREFIX "string"
 #define KVI_STRING_OPTIONS_PREFIX_LEN 6
@@ -421,8 +423,9 @@ DECLARE_OPTION_STRUCT(KviStringListOption, QStringList)
 #define KviOption_stringLogsPath 57                                            /* logfolder */
 #define KviOption_stringLogsDynamicPath 58                                     /* logfolder */
 #define KviOption_stringLogsExportPath 59                                      /* logview module log export */
+#define KviOption_stringQtStyle 60                                             /* themes::general */
 
-#define KVI_NUM_STRING_OPTIONS 60
+#define KVI_NUM_STRING_OPTIONS 61
 
 #define KVI_STRINGLIST_OPTIONS_PREFIX "stringlist"
 #define KVI_STRINGLIST_OPTIONS_PREFIX_LEN 10
@@ -595,8 +598,9 @@ DECLARE_OPTION_STRUCT(KviStringListOption, QStringList)
 #define KviOption_uintMaximumBlowFishKeySize 80
 #define KviOption_uintCustomCursorWidth 81                                    /* Interface */
 #define KviOption_uintUserListMinimumWidth 82
+#define KviOption_uintIrcViewLineVMarginType 83                               /* interface::features::components::ircview */
 
-#define KVI_NUM_UINT_OPTIONS 83
+#define KVI_NUM_UINT_OPTIONS 84
 
 namespace KviIdentdOutputMode
 {
@@ -637,7 +641,7 @@ namespace KviIdentdOutputMode
 #define KVI_MIRCCOLOR_OPTIONS_PREFIX "mirccolor"
 #define KVI_MIRCCOLOR_OPTIONS_PREFIX_LEN 9
 
-#define KVI_NUM_MIRCCOLOR_OPTIONS 16
+#define KVI_NUM_MIRCCOLOR_OPTIONS (KVI_MIRCCOLOR_MAX+1)
 
 // external declaration of the tables
 extern KVIRC_API KviBoolOption g_boolOptionsTable[KVI_NUM_BOOL_OPTIONS];
@@ -665,6 +669,16 @@ extern KVIRC_API KviStringListOption g_stringlistOptionsTable[KVI_NUM_STRINGLIST
 #define KVI_OPTION_MIRCCOLOR(_idx) g_mirccolorOptionsTable[_idx].option
 #define KVI_OPTION_STRINGLIST(_idx) g_stringlistOptionsTable[_idx].option
 #define KVI_OPTION_ICCOLOR(_idx) g_iccolorOptionsTable[_idx].option
+
+inline QColor getMircColor(unsigned int index)
+{
+	// Use inline function (instead of macro) to avoid evaluating index more than once.
+	if (index <= KVI_MIRCCOLOR_MAX)
+		return KVI_OPTION_MIRCCOLOR(index);
+	if (index <= KVI_EXTCOLOR_MAX)
+		return KviControlCodes::getExtendedColor(index);
+	return QColor(); // invalid color (isValid returns false)
+}
 
 // Verbosity constants
 #define KVI_VERBOSITY_LEVEL_MUTE 0

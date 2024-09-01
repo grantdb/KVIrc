@@ -36,11 +36,11 @@
 #include <openssl/err.h>
 #include <openssl/dh.h>
 
-#include <stdio.h>
+#include <cstdio>
 
 #if !(defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW))
 // linux, mac
-#include <signal.h>
+#include <csignal>
 #endif
 
 static bool g_bSSLInitialized = false;
@@ -56,6 +56,7 @@ static inline void my_ssl_unlock()
 	g_pSSLMutex->unlock();
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 // THIS PART OF OpenSSL SUCKS
 
 static DH * dh_512 = nullptr;
@@ -235,6 +236,7 @@ DH * my_ugly_dh_callback(SSL *, int, int keylength)
 	my_ssl_unlock();
 	return dh;
 }
+#endif
 
 void KviSSL::globalInit()
 {
@@ -247,6 +249,7 @@ void KviSSL::globalDestroy()
 {
 	if(!g_pSSLMutex)
 		return;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 	if(dh_512)
 		DH_free(dh_512);
 	if(dh_1024)
@@ -255,6 +258,7 @@ void KviSSL::globalDestroy()
 		DH_free(dh_2048);
 	if(dh_4096)
 		DH_free(dh_4096);
+#endif
 	globalSSLDestroy();
 	delete g_pSSLMutex;
 	g_pSSLMutex = nullptr;
@@ -329,12 +333,14 @@ void KviSSL::shutdown()
 		// ignore SIGPIPE
 		signal(SIGPIPE, SIG_IGN);
 		// At least attempt to shutdown the connection gracefully
-		SSL_shutdown(m_pSSL);
+		if(!SSL_in_init(m_pSSL))
+			SSL_shutdown(m_pSSL);
 		//restore normal SIGPIPE behaviour.
 		signal(SIGPIPE, SIG_DFL);
 #else
 		// At least attempt to shutdown the connection gracefully
-		SSL_shutdown(m_pSSL);
+		if(!SSL_in_init(m_pSSL))
+			SSL_shutdown(m_pSSL);
 #endif
 		SSL_free(m_pSSL);
 		m_pSSL = nullptr;
@@ -372,12 +378,43 @@ bool KviSSL::initContext(Method m)
 		SSL_CTX_set_verify(m_pSSLCtx, SSL_VERIFY_PEER, verify_clientCallback);
 	}
 
+	SSL_CTX_set_options (m_pSSLCtx,
+		// disable old, unsecure protocols
+		SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3
+		|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1
+		// disable unsecure defaults on old openSSL versions
+#ifdef SSL_OP_NO_COMPRESSION
+		|SSL_OP_NO_COMPRESSION
+#endif
+#ifdef SSL_OP_SINGLE_DH_USE
+		|SSL_OP_SINGLE_DH_USE
+#endif
+#ifdef SSL_OP_SINGLE_ECDH_USE
+		|SSL_OP_SINGLE_ECDH_USE
+#endif
+	);
 	// we want all ciphers to be available here, except insecure ones, orderer by strength;
-	// ADH are moved to the end since they are less secure, but they don't need a certificate
-	// (so we can use secure dcc without a cert)
-	// NOTE: see bug ticket #155
-	SSL_CTX_set_cipher_list(m_pSSLCtx, "ALL:!eNULL:!EXP:!SSLv2:+ADH@STRENGTH");
+	SSL_CTX_set_cipher_list(m_pSSLCtx, "ALL:!eNULL:!LOW:!EXP:!SSLv2:!SSLv3:!TLSv1:@STRENGTH");
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	SSL_CTX_set_dh_auto(m_pSSLCtx, 1);
+#else
 	SSL_CTX_set_tmp_dh_callback(m_pSSLCtx, my_ugly_dh_callback);
+#endif
+	return true;
+}
+
+bool KviSSL::enableADHCiphers()
+{
+	if(!m_pSSLCtx)
+		return false;
+	if(!m_pSSL)
+		return false;
+	// Add Anonymous DH cipher suites to the list of available ciphers.
+	// ADH don't need a certificate, so we can use secure dcc without a cert)
+	// They are moved to the end since they are considered NOT SECURE since at least 2015's Logjam
+	// NOTE: see bug ticket #155
+	if(!SSL_set_cipher_list(m_pSSL, "ALL:!eNULL:!LOW:!EXP:!SSLv2:!SSLv3:!TLSv1:+ADH:+AECDH:@STRENGTH:@SECLEVEL=0"))
+		return false;
 	return true;
 }
 
@@ -486,6 +523,13 @@ bool KviSSL::getLastErrorString(KviCString & buffer, bool bPeek)
 		return true;
 	}
 	return false;
+}
+
+bool KviSSL::setTLSHostname(const char * name)
+{
+	if(!m_pSSL)
+		return false;
+	return SSL_set_tlsext_host_name(m_pSSL, name) ? true : false;
 }
 
 KviSSL::Result KviSSL::connect()

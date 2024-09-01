@@ -23,10 +23,7 @@
 //=============================================================================
 #include "kvi_settings.h"
 
-#if defined(COMPILE_WEBKIT_SUPPORT)
 #include "WebThemeInterfaceDialog.h"
-#endif
-
 #include "ThemeManagementDialog.h"
 #include "PackThemeDialog.h"
 #include "SaveThemeDialog.h"
@@ -51,10 +48,8 @@
 #include <QLayout>
 #include <QPushButton>
 #include <QLineEdit>
-#include <QRegExp>
 #include <QMessageBox>
 #include <QDir>
-#include <QDesktopWidget>
 #include <QStringList>
 #include <QDateTime>
 #include <QFileDialog>
@@ -68,6 +63,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QShortcut>
 #include <QMenu>
+#include <QScreen>
 
 extern QRect g_rectManagementDialogGeometry;
 
@@ -114,9 +110,8 @@ ThemeManagementDialog::ThemeManagementDialog(QWidget * parent)
     : QWidget(parent)
 {
 	m_pItemDelegate = nullptr;
-#ifdef COMPILE_WEBKIT_SUPPORT
 	m_pWebThemeInterfaceDialog = nullptr;
-#endif
+
 	setObjectName("theme_options_widget");
 	setWindowTitle(__tr2qs_ctx("Manage Themes - KVIrc", "theme"));
 	setWindowIcon(*(g_pIconManager->getSmallIcon(KviIconManager::Theme)));
@@ -126,7 +121,7 @@ ThemeManagementDialog::ThemeManagementDialog(QWidget * parent)
 	//QGridLayout * g = new QGridLayout(this);
 	QVBoxLayout * pVBox = new QVBoxLayout(this);
 	KviTalHBox * pHBox = new KviTalHBox(this);
-	pHBox->setMargin(1);
+	pHBox->setContentsMargins(1, 1, 1, 1);
 	pHBox->setSpacing(1);
 	//g->addWidget(pHBox,0,0);
 	pVBox->addWidget(pHBox);
@@ -145,7 +140,6 @@ ThemeManagementDialog::ThemeManagementDialog(QWidget * parent)
 
 	m_pPackThemeButton = new QToolButton(pHBox);
 	m_pPackThemeButton->setIcon(*(g_pIconManager->getBigIcon(KVI_BIGICON_PACK)));
-
 	m_pPackThemeButton->setIconSize(QSize(32, 32));
 	m_pPackThemeButton->setToolTip(__tr2qs_ctx("Export selected themes to a distributable package", "theme"));
 	connect(m_pPackThemeButton, SIGNAL(clicked()), this, SLOT(packTheme()));
@@ -230,7 +224,7 @@ ThemeManagementDialog::ThemeManagementDialog(QWidget * parent)
 	resize(g_rectManagementDialogGeometry.width(),
 	    g_rectManagementDialogGeometry.height());
 
-	QRect rect = g_pApp->desktop()->screenGeometry(g_pMainWindow);
+	QRect rect = g_pMainWindow->screen()->availableGeometry();
 	move(rect.x() + ((rect.width() - g_rectManagementDialogGeometry.width()) / 2), rect.y() + ((rect.height() - g_rectManagementDialogGeometry.height()) / 2));
 
 	new QShortcut(Qt::Key_Escape, this, SLOT(closeClicked()));
@@ -242,13 +236,11 @@ ThemeManagementDialog::~ThemeManagementDialog()
 		delete m_pItemDelegate;
 	g_rectManagementDialogGeometry = QRect(pos().x(), pos().y(), size().width(), size().height());
 	m_pInstance = nullptr;
-#ifdef COMPILE_WEBKIT_SUPPORT
 	if(m_pWebThemeInterfaceDialog)
 	{
 		m_pWebThemeInterfaceDialog->deleteLater();
 		m_pWebThemeInterfaceDialog = nullptr;
 	}
-#endif //COMPILE_WEBKIT_SUPPORT
 }
 
 void ThemeManagementDialog::closeClicked()
@@ -360,8 +352,7 @@ void ThemeManagementDialog::applyCurrentTheme()
 	{
 		QString szErr = out.lastError();
 		QString szMsg = QString(__tr2qs_ctx("Failed to apply the specified theme: %1", "theme")).arg(szErr);
-		QMessageBox::critical(this, __tr2qs_ctx("Apply Theme - KVIrc", "theme"), szMsg,
-		    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::critical(this, __tr2qs_ctx("Apply Theme - KVIrc", "theme"), szMsg);
 		return;
 	}
 
@@ -420,7 +411,6 @@ void ThemeManagementDialog::installFromFile()
 
 void ThemeManagementDialog::getMoreThemes()
 {
-#ifdef COMPILE_WEBKIT_SUPPORT
 	if(m_pWebThemeInterfaceDialog)
 	{
 		m_pWebThemeInterfaceDialog->show();
@@ -431,18 +421,11 @@ void ThemeManagementDialog::getMoreThemes()
 		QObject::connect(m_pWebThemeInterfaceDialog, SIGNAL(destroyed()), this, SLOT(webThemeInterfaceDialogDestroyed()));
 		m_pWebThemeInterfaceDialog->show();
 	}
-#else
-	if(!g_pMainWindow)
-		return;
-	g_pMainWindow->executeInternalCommand(KVI_INTERNALCOMMAND_OPENURL_KVIRC_THEMES);
-#endif
 }
 
 void ThemeManagementDialog::webThemeInterfaceDialogDestroyed()
 {
-#ifdef COMPILE_WEBKIT_SUPPORT
 	m_pWebThemeInterfaceDialog = nullptr;
-#endif
 	fillThemeBox();
 }
 

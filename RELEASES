@@ -1,3 +1,85 @@
+11.05.2024: Release 5.2.4 "Quasar"
+###############################################################################
+
+A couple of month has passed, and 5.2.4 is available.
+
+This is mostly a bugfix release, including some quality of life improvements
+for Wayland users on GNU/Linux and Windows users running KVirc as a "portable"
+app. It also includes an important fix for a crash related to the undo/redo
+functionality. As a goodie, a new "Vertical line margin" option has been added
+to the ircview to make your ASCII art look better than ever.
+
+For every need, or even just for some small talking, come and say hi at
+#kvirc@Libera.chat
+
+Have fun!
+The KVIrc Development Team
+
+
+08.03.2024: Release 5.2.2 "Quasar"
+###############################################################################
+
+Here we go again: 5.2.2 is ready.
+
+This release introduces the use of Qt version 6 on all platforms.
+This adds better support for recent operating systems like Windows 10/11 and
+macOS, fixing a few long standing issues.
+Since 5.2.0 a few critical bugfixes has been added, including fixes for crashes
+and memory leaks.
+
+For every need, or even just for some small talking, come and say hi at
+#kvirc@Libera.chat
+
+Have fun!
+The KVIrc Development Team
+
+
+14.01.2024: Release 5.2.0 "Quasar"
+###############################################################################
+
+This release contains changes from the last 5 years of development, including:
+
+  * Support for the latest version of upstream libraries: Qt5.15/6.6, KDE5/6,
+    OpenSSL 1.x/3.x
+  * Wayland support
+  * Fix for some nasty crash bugs
+  * an improved font rendering engine able to represent complex characters like
+    emojis with ligatures
+  * a reworked tray icon that now follows your OS style
+  * better support for solanum ircd (Libera net)
+
+For every need, or even just for some small talking, come and say hi at
+#kvirc@Libera.chat
+
+Have fun!
+The KVIrc Development Team
+
+
+
+
+###############################################################################
+# Historic entries : just for the curious
+###############################################################################
+
+
+01.01.2019: Release 5.0.0 "Aria"
+###############################################################################
+
+It took quite some time, but here it is: an official stable 5.0.0.
+
+Since the beta1 release several bugs were fixed and the codebase has been
+polished a quite lot. The last stable release was more than six years ago,
+so the changes are really too many to be listed. You're encouraged to upgrade
+and just try it out.
+
+Most prominent contributors to this release are IceN9ne, wodim, Stanzilla,
+DarthGandalf, Dessa, staticfox, AndrioCelos and craftwar: Honor and Glory! :)
+As usual, developers hang around #kvirc@Freenode. Come in and say hi!
+
+Have fun!
+Szymon Stefanek and The KVIrc Development Team
+
+
 29.12.2017: Release 5.0.0-beta1
 ###############################################################################
 
@@ -198,12 +280,6 @@ you got it from (svn, kvirc site, other sites).
 
 
 
-
-
-
-###############################################################################
-# Historic entries : just for the curious
-###############################################################################
 
 15 October 2008: Release 3.4.2 "Shiny"
 ###############################################################################

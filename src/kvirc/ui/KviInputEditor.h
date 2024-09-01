@@ -39,7 +39,6 @@
 * \def KVI_INPUT_DRAG_TIMEOUT Drag scroll speed...(smaller values = faster)
 * \def KVI_INPUT_DEF_BACK Default background color
 * \def KVI_INPUT_DEF_FORE Default foreground color
-* \def ACCEL_KEY Accelerator key
 */
 
 #include "kvi_settings.h"
@@ -55,7 +54,7 @@
 class KviUserListView;
 class QDragEnterEvent;
 class QKeyEvent;
-class QFontMetricsF;
+class QFontMetrics;
 
 #define KVI_INPUT_MAX_BUFFER_SIZE 400
 #define KVI_INPUT_XTRAPADDING 1
@@ -65,16 +64,12 @@ class QFontMetricsF;
 #define KVI_INPUT_DEF_BACK 100
 #define KVI_INPUT_DEF_FORE 101
 
-#ifndef ACCEL_KEY
-#define ACCEL_KEY(k) "\t" + QKeySequence(Qt::ControlModifier | Qt::Key_##k).toString()
-#endif
-
 class KviInputEditorSpellCheckerBlock
 {
 public:
 	QString szText;
-	int iStart;
-	int iLength;
+	qsizetype iStart;
+	qsizetype iLength;
 	bool bSpellCheckable;
 	bool bCorrect;
 };
@@ -101,6 +96,7 @@ public:
 	* \return KviInputEditor
 	*/
 	KviInputEditor(QWidget * pPar, KviWindow * pWnd, KviUserListView * pView = nullptr);
+	KviInputEditor(QWidget * pPar, QWidget * pInputParent, KviWindow * pWnd, KviUserListView * pView = nullptr);
 
 	/**
 	* \brief Destroys the Input editor object
@@ -109,11 +105,12 @@ public:
 
 protected:
 	static int g_iInputFontCharWidth[256];
-	static QFontMetricsF * g_pLastFontMetrics;
+	static QFontMetrics * g_pLastFontMetrics;
 	static int g_iInputInstances;
 	static int g_iCachedHeight;
 	QString m_szTextBuffer; // original buffer
 	int m_iCursorPosition;
+	int m_iSpellCheckPosition;
 	int m_iSelectionBegin;
 	int m_iSelectionEnd;
 	int m_iMaxBufferSize;
@@ -251,7 +248,7 @@ protected:
 	* Contains owned pointers and has autodelete set to true. The most recent command
 	* is at the end. Null when no undo is available.
 	*/
-	std::vector<EditCommand *> m_UndoStack;
+	std::vector<std::unique_ptr<EditCommand>> m_UndoStack;
 
 	/**
 	* \var m_RedoStack
@@ -260,7 +257,7 @@ protected:
 	* Contains owned pointers and has autodelete set to true. The most recently undone
 	* command is at the end. Null when no redo is available.
 	*/
-	std::vector<EditCommand *> m_RedoStack;
+	std::vector<std::unique_ptr<EditCommand>> m_RedoStack;
 
 	KviInputEditorPrivate * m_p;
 
@@ -503,13 +500,13 @@ private:
 	* \brief Returns true is there are some action in the undo stack
 	* \return bool
 	*/
-	inline bool isUndoAvailable() const { return !m_bReadOnly && !m_UndoStack.empty(); }
+	bool isUndoAvailable() const { return !m_bReadOnly && !m_UndoStack.empty(); }
 
 	/**
 	* \brief Returns true is there are some action in the redo stack
 	* \return bool
 	*/
-	inline bool isRedoAvailable() const { return !m_bReadOnly && !m_RedoStack.empty(); }
+	bool isRedoAvailable() const { return !m_bReadOnly && !m_RedoStack.empty(); }
 
 	/**
 	* \brief Inserts one action in the undo stack
@@ -521,9 +518,9 @@ private:
 	/**
 	* \brief Returns the current input editor font metrics (globally shared)
 	* \param font The current input editor font
-	* \return QFontMetricsF *
+	* \return QFontMetrics *
 	*/
-	QFontMetricsF * getLastFontMetrics(const QFont & font);
+	QFontMetrics * getLastFontMetrics(const QFont & font);
 
 public slots:
 	/**
@@ -974,8 +971,8 @@ protected:
 	QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 	void paintEvent(QPaintEvent * e) override;
 	bool checkWordSpelling(const QString & szWord);
-	void splitTextIntoSpellCheckerBlocks(const QString & szText, std::vector<KviInputEditorSpellCheckerBlock *> & lBuffer);
-	KviInputEditorSpellCheckerBlock * findSpellCheckerBlockAtCursor(std::vector<KviInputEditorSpellCheckerBlock *> & lBlocks);
+	void splitTextIntoSpellCheckerBlocks(const QString & szText, std::vector<KviInputEditorSpellCheckerBlock> & lBuffer);
+	KviInputEditorSpellCheckerBlock * findSpellCheckerBlockAtCursor(std::vector<KviInputEditorSpellCheckerBlock> & lBlocks);
 	void fillSpellCheckerCorrectionsPopup();
 
 	void rebuildTextBlocks();

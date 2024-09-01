@@ -37,16 +37,15 @@
 class QString;
 
 /**
-* \typedef LogFileData
 * \struct _LogFileData
 * \brief A struct that contains the data of a log
 */
-typedef struct _LogFileData
+struct LogFileData
 {
 	QString szName; /**< the name of the log */
 	QString szType; /**< the type of the log */
 	QString szFile; /**< the name of the exported log */
-} LogFileData;
+};
 
 /**
 * \class LogFile
@@ -144,7 +143,16 @@ public:
 	* \param szText The buffer where to save the contents of the log
 	* \return void
 	*/
-	void getText(QString & szText);
+	void getText(QString & szText) const;
+
+	/**
+	* \brief Exports the log and creates the file in the selected format
+	* \param exportType The type of file to export the log as. Either PlainText or HTML.
+	* \param szLog The absolute path of the file to be created
+	* \param pszFile The buffer to store the exported log name
+	* \return void
+	*/
+	void createLog(ExportType exportType, QString szLog, QString * pszFile = nullptr) const;
 };
 
 #endif // _LOGFILE_H_

@@ -49,13 +49,12 @@ KviThemedLineEdit::KviThemedLineEdit(QWidget * par, KviWindow * pWindow, const c
 
 	setFrame(false);
 
-	int l, t, r, b;
-	getTextMargins(&l, &t, &r, &b);
-	if(l < 4)
-		l = 4;
-	if(r < 4)
-		r = 4;
-	setTextMargins(l, t, r, b);
+	QMargins m = textMargins();
+	if(m.left() < 4)
+		m.setLeft(4);
+	if(m.right() < 4)
+		m.setRight(4);
+	setTextMargins(m);
 
 	setAutoFillBackground(false);
 	applyOptions();
@@ -73,7 +72,7 @@ void KviThemedLineEdit::applyOptions()
 #endif
 	QString szStyle = QString("QLineEdit { background: %1; color: %2; font-family: %3; font-size: %4pt; font-weight: %5; font-style: %6; margin: 1px; }")
 	                      .arg(bIsTrasparent ? "transparent" : KVI_OPTION_COLOR(KviOption_colorLabelBackground).name())
-	                      .arg(bIsTrasparent ? KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()).name() : KVI_OPTION_COLOR(KviOption_colorLabelForeground).name())
+	                      .arg(bIsTrasparent ? getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()).name() : KVI_OPTION_COLOR(KviOption_colorLabelForeground).name())
 	                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).family())
 	                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).pointSize())
 	                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).weight() == QFont::Bold ? "bold" : "normal")

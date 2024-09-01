@@ -44,19 +44,29 @@
 #include <QByteArray>
 #include <QTextStream>
 #include <QUrl>
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 #include <QTextCodec>
-#include <ctype.h>
+#else
+#include <QStringConverter>
+#endif
+#include <cctype>
 #include <QTextDocument>
 #include <QTimer>
 
 #include <algorithm>
+#include <utility>
 
 QT_BEGIN_NAMESPACE
 
 struct Term
 {
 	Term() = default;
-	Term(const QString & t, int f, QVector<Document> l) : term(t), frequency(f), documents(l) {}
+	Term(QString t, int f, QVector<Document> l)
+	    : term(std::move(t))
+	    , frequency(f)
+	    , documents(std::move(l))
+	{
+	}
 	QString term;
 	int frequency = -1;
 	QVector<Document> documents;
@@ -77,11 +87,10 @@ QDataStream & operator<<(QDataStream & s, const Document & l)
 	return s;
 }
 
-HelpIndex::HelpIndex(const QString & dp, const QString & hp)
-    : QObject(nullptr), docPath(dp)
+HelpIndex::HelpIndex(QString dp, const QString & /* hp */)
+    : QObject(nullptr)
+    , docPath(std::move(dp))
 {
-	Q_UNUSED(hp);
-
 	alreadyHaveDocList = false;
 
 	connect(qApp, SIGNAL(lastWindowClosed()), this, SLOT(setLastWinClosed()));
@@ -92,11 +101,10 @@ HelpIndex::HelpIndex(const QString & dp, const QString & hp)
 	connect(m_pTimer, SIGNAL(timeout()), this, SLOT(filterNext()));
 }
 
-HelpIndex::HelpIndex(const QStringList & dl, const QString & hp)
-    : QObject(nullptr), docList{dl}
+HelpIndex::HelpIndex(QStringList dl, const QString & /* hp */)
+    : QObject(nullptr)
+    , docList{ std::move(dl) }
 {
-	Q_UNUSED(hp);
-
 	alreadyHaveDocList = true;
 
 	connect(qApp, SIGNAL(lastWindowClosed()), this, SLOT(setLastWinClosed()));
@@ -186,29 +194,6 @@ void HelpIndex::insertInDict(const QString & str, int docNum)
 	}
 }
 
-QString HelpIndex::getCharsetForDocument(QFile * file)
-{
-	QTextStream s(file);
-	QString contents = s.readAll();
-
-	QString encoding;
-	int start = contents.indexOf(QLatin1String("<meta"), 0, Qt::CaseInsensitive);
-	if(start > 0)
-	{
-		int end = contents.indexOf(QLatin1String(">"), start);
-		QString meta = contents.mid(start + 5, end - start);
-		meta = meta.toLower();
-		QRegExp r(QLatin1String("charset=([^\"\\s]+)"));
-		if(r.indexIn(meta) != -1)
-			encoding = r.cap(1);
-	}
-
-	file->seek(0);
-	if(encoding.isEmpty())
-		return QLatin1String("utf-8");
-	return encoding;
-}
-
 void HelpIndex::parseDocument(const QString & filename, int docNum)
 {
 	QFile file(filename);
@@ -219,9 +204,11 @@ void HelpIndex::parseDocument(const QString & filename, int docNum)
 	}
 
 	QTextStream s(&file);
-	QString en = getCharsetForDocument(&file);
-	s.setCodec(QTextCodec::codecForName(en.toLatin1().constData()));
-
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    s.setCodec(QTextCodec::codecForMib(106));
+#else
+	s.setEncoding(QStringConverter::Utf8);
+#endif
 	QString text = s.readAll();
 	if(text.isNull())
 		return;

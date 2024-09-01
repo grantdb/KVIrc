@@ -72,7 +72,7 @@ ActionEditorTreeWidgetItem::ActionEditorTreeWidgetItem(QTreeWidget * v, ActionDa
 	m_pTreeWidget = v;
 	//setFlags(Qt::ItemIsUserSelectable);
 	QString t = "<b>" + m_pActionData->m_szName + "</b>";
-	t += "<br><font color=\"#454545\" size=\"-1\">" + m_pActionData->m_szVisibleName + "</font>";
+	t += R"(<br><font color="#454545" size="-1">)" + m_pActionData->m_szVisibleName + "</font>";
 	m_szKey = m_pActionData->m_szName.toUpper();
 	setText(0, t);
 	QPixmap * p = g_pIconManager->getBigIcon(m_pActionData->m_szBigIcon);
@@ -744,7 +744,7 @@ void ActionEditor::exportActions()
 
 	if(!KviFileUtils::writeFile(szFile, szCode))
 	{
-		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the actions file.", "editor"), __tr2qs_ctx("OK", "editor"));
+		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the actions file.", "editor"));
 	}
 }
 
@@ -762,7 +762,7 @@ void ActionEditor::deleteActions()
 	if(l.isEmpty())
 		return;
 
-	//if(QMessageBox::question(this,__tr2qs_ctx("Confirm Actions Deletion - KVIrc","editor"),__tr2qs_ctx("Do you really want to delete the selected actions?","editor"),__tr2qs_ctx("Yes","editor"),__tr2qs_ctx("No","editor")) != 0)
+	//if(QMessageBox::question(this,__tr2qs_ctx("Confirm Actions Deletion - KVIrc","editor"),__tr2qs_ctx("Do you really want to delete the selected actions?","editor")) != QMessageBox::Yes)
 	//	return;
 
 	for(ActionEditorTreeWidgetItem * i = l.first(); i; i = l.next())

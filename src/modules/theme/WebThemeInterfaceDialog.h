@@ -26,15 +26,13 @@
 
 #include "kvi_settings.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-
 #include "KviWebPackageManagementDialog.h"
 
 class WebThemeInterfaceDialog : public KviWebPackageManagementDialog
 {
 	Q_OBJECT
 public:
-	WebThemeInterfaceDialog(QWidget * par = 0);
+	WebThemeInterfaceDialog(QWidget * par = nullptr);
 	~WebThemeInterfaceDialog();
 
 private:
@@ -42,10 +40,8 @@ private:
 	QString m_szGlobalThemesPath;
 
 protected:
-	virtual bool packageIsInstalled(const QString & szId, const QString & szVersion);
-	virtual bool installPackage(const QString & szPath, QString & szError);
+	bool packageIsInstalled(const QString & szId, const QString & szVersion) override;
+	bool installPackage(const QString & szPath, QString & szError) override;
 };
-
-#endif //COMPILE_WEBKIT_SUPPORT
 
 #endif //_WEBTHEMEINTERFACEDIALOG_H_

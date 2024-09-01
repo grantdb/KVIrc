@@ -443,8 +443,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(setreturn)
 	{
-		Q_UNUSED(__pSwitches);
-
 		if(KVSCSC_pParams->count() == 0)
 		{
 			KVSCSC_pContext->returnValue()->setNothing();
@@ -571,7 +569,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(srand)
 	{
-		Q_UNUSED(__pSwitches);
 		QString tmp;
 
 		for(int i = 0; i < 10; i++)
@@ -599,7 +596,7 @@ namespace KviKvsCoreSimpleCommands
 		@description:
 			Requests the stats information from the specified server or the current server if no [target server] is specified.[br]
 			The query parameter is usually a letter indicating the type of the query requested: some query letters
-			are defined by [doc]RFC2812[/doc] and some others are server implementation dependent.[br]
+			are defined by [anchorlink:https://tools.ietf.org/html/rfc2812]RFC2812[/anchorlink] and some others are server implementation dependent.[br]
 			This command is an [doc:rfc2812wrappers]RFC2812 command wrapper[/doc]; see that document for more information.[br]
 	*/
 	// RFC2812 wrapper
@@ -644,8 +641,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(topic)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szChannel;
 		QString szTopic;
 		KVSCSC_PARAMETERS_BEGIN
@@ -936,8 +931,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(warning)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szAll;
 		KVSCSC_pParams->allAsString(szAll);
 		KVSCSC_pContext->warning("%Q", &szAll);
@@ -964,8 +957,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(wallops)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szMessage;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("message", KVS_PT_NONEMPTYSTRING, KVS_PF_APPENDREMAINING, szMessage)
@@ -1018,8 +1009,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(who)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szData;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("filter", KVS_PT_NONEMPTYSTRING, KVS_PF_OPTIONAL | KVS_PF_APPENDREMAINING, szData)
@@ -1079,8 +1068,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(whois)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szNick;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("nickname", KVS_PT_NONEMPTYSTRING, KVS_PF_APPENDREMAINING, szNick)
@@ -1108,7 +1095,7 @@ namespace KviKvsCoreSimpleCommands
 			Requests user information
 		@description:
 			Requests information about an IRC user specified by <nickname>.[br]
-			WHOWAS requests [i]history[/i] records. See [doc:rfc2812]RFC2812[/doc] for more info.[br]
+			WHOWAS requests [i]history[/i] records. See [anchorlink:https://tools.ietf.org/html/rfc2812]RFC2812[/anchorlink] for more info.[br]
 			This command is [doc:connection_dependent_commands]connection dependent[/doc].
 		@examples:
 			[example]
@@ -1121,8 +1108,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(whowas)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szNick;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("nickname", KVS_PT_NONEMPTYSTRING, KVS_PF_APPENDREMAINING, szNick)

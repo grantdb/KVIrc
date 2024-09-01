@@ -26,8 +26,6 @@
 
 #include "KviWebPackageManagementDialog.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-
 #include "KviLocale.h"
 #include "KviApplication.h"
 #include "KviMessageBox.h"
@@ -37,168 +35,257 @@
 #include "KviMainWindow.h"
 #include "KviNetworkAccessManager.h"
 
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QToolButton>
-#include <QLineEdit>
 #include <QToolTip>
-#include <QTimer>
 #include <QClipboard>
 #include <QHBoxLayout>
-#include <QWebView>
 #include <QVBoxLayout>
 #include <QToolBar>
 #include <QFile>
 #include <QProgressBar>
 #include <QDir>
-#include <QWebView>
-#include <QWebFrame>
-#include <QWebElement>
 #include <QUrl>
 #include <QShowEvent>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QMessageBox>
+#include <QMenu>
+
+#define KVI_WEBPACK_INDEX "index.json"
+
+KviWebPackageListItem::KviWebPackageListItem(KviTalListWidget * pBox, QJsonObject obj, const QString & szBaseUrl)
+	: KviTalListWidgetItem(pBox)
+{
+	m_szName = obj.value("name").toString();
+	m_szVersion = obj.value("version").toString();
+	m_szAuthor = obj.value("author").toString();
+	m_szDesc = obj.value("desc").toString();
+	m_szScreen = obj.value("screen").toString();
+	m_szDownload = obj.value("download").toString();
+
+	QString szText;
+	szText = "<b>";
+	szText += m_szName;
+	szText += "</b>";
+
+	if(!m_szVersion.isEmpty())
+	{
+		szText += "[";
+		szText += m_szVersion;
+		szText += "]";
+	}
+
+	if(!m_szAuthor.isEmpty())
+	{
+		szText += " <font color=\"#454545\"> ";
+		szText += __tr2qs("by");
+		szText += " ";
+		szText += m_szAuthor;
+		szText += "</font>";
+	}
+
+	szText += "<br><font size=\"-1\">";
+	szText += m_szDesc;
+	szText += "</font>";
+	setText(szText);
+
+	if(!m_szScreen.isEmpty())
+	{
+		downloadIcon(szBaseUrl + m_szScreen);
+	}
+}
+
+void KviWebPackageListItem::downloadIcon(const QString & szIconUrl)
+{
+	QNetworkRequest req(szIconUrl);
+	QNetworkReply * pReply = KviNetworkAccessManager::getInstance()->get(req);
+	connect(pReply, &QNetworkReply::finished, [this, pReply]() {
+		if (pReply->error() == QNetworkReply::NoError) {
+			QPixmap pixImage;
+			if(pixImage.loadFromData(pReply->readAll()))
+			{
+				setIcon(pixImage);
+			}
+		}
+		pReply->deleteLater();
+	});
+}
+
+void KviWebPackageListItem::showPopupImage()
+{
+	QDialog dlg;
+	QHBoxLayout * l = new QHBoxLayout(&dlg);
+	QLabel * label = new QLabel;
+	l->addWidget(label);
+	label->setPixmap(icon().pixmap(800, 600));
+	dlg.exec();
+}
 
 KviWebPackageManagementDialog::KviWebPackageManagementDialog(QWidget * pParent)
     : QWidget(pParent)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
-
+	setMinimumSize(600, 500);
 	setWindowIcon(QIcon(*(g_pIconManager->getBigIcon(KVI_BIGICON_WWW))));
 
-	m_pLayout = new QVBoxLayout(this);
-	m_pLayout->setMargin(3);
-	m_pLayout->setSpacing(2);
-
-	setLayout(m_pLayout);
 	m_bBusy = false;
+	m_pContextPopup = new QMenu(this);
 
-	QWidget * pStatus = new QWidget(this);
-	m_pLayout->addWidget(pStatus);
+	QVBoxLayout * pVBox = new QVBoxLayout(this);
+	KviTalHBox * pHBox = new KviTalHBox(this);
+	pHBox->setContentsMargins(1, 1, 1, 1);
+	pHBox->setSpacing(1);
+	pVBox->addWidget(pHBox);
 
-	QHBoxLayout * hbox = new QHBoxLayout(pStatus);
+	m_pPreviewButton = new QToolButton(pHBox);
+	m_pPreviewButton->setIcon(*(g_pIconManager->getBigIcon(KVI_BIGICON_THEME)));
+	m_pPreviewButton->setIconSize(QSize(32, 32));
+	m_pPreviewButton->setToolTip(__tr2qs("Show item preview"));
+	connect(m_pPreviewButton, SIGNAL(clicked()), this, SLOT(showItemPreview()));
 
-	m_pToolBar = new QToolBar(pStatus);
-	m_pProgressBar = new QProgressBar(pStatus);
-	m_pProgressBar->setMaximumWidth(220);
-	m_pProgressBar->setMinimumWidth(220);
-	hbox->addWidget(m_pToolBar);
-	hbox->addWidget(m_pProgressBar);
-	hbox->setAlignment(m_pProgressBar, Qt::AlignRight);
+	m_pDeleteButton = new QToolButton(pHBox);
+	m_pDeleteButton->setIcon(*(g_pIconManager->getBigIcon(KVI_BIGICON_PACK)));
+	m_pDeleteButton->setIconSize(QSize(32, 32));
+	m_pDeleteButton->setToolTip(__tr2qs("Download selected item"));
+	connect(m_pDeleteButton, SIGNAL(clicked()), this, SLOT(downloadItem()));
 
-	m_pWebView = new QWebView(this);
-	m_pLayout->addWidget(m_pWebView);
-	m_pLayout->setStretchFactor(m_pWebView, 10); // must take most space
-	// disable context menu
-	m_pWebView->setContextMenuPolicy(Qt::NoContextMenu);
-	m_pToolBar->addAction(m_pWebView->pageAction(QWebPage::Back));
-	m_pToolBar->addAction(m_pWebView->pageAction(QWebPage::Forward));
+	QWidget * w = new QWidget(pHBox);
+	w->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-	//connect(pWebView,SIGNAL(loadStarted()),this,SLOT(slotLoadStarted()));
-	connect(m_pWebView, SIGNAL(loadFinished(bool)), this, SLOT(slotLoadFinished(bool)));
-	connect(m_pWebView, SIGNAL(loadProgress(int)), this, SLOT(slotLoadProgress(int)));
-	connect(m_pWebView->page(), SIGNAL(linkClicked(const QUrl &)), this, SLOT(slotLinkClicked(const QUrl &)));
+	m_pProgressBar = new QProgressBar(this);
+	pVBox->addWidget(m_pProgressBar);
 
-	// we managing the links
-	m_pWebView->page()->setLinkDelegationPolicy(QWebPage::DelegateAllLinks);
+	m_pListWidget = new KviTalListWidget(this);
+	m_pListWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+	m_pItemDelegate = new KviTalIconAndRichTextItemDelegate(m_pListWidget);
+	m_pItemDelegate->setDefaultIcon(g_pIconManager->getBigIcon(QString(KVI_BIGICON_THEME))->scaled(64, 64, Qt::KeepAspectRatio));
+	m_pItemDelegate->setMinimumSize(QSize(64, 64));
+	m_pItemDelegate->setIconSize(QSize(64, 64));
+	m_pListWidget->setItemDelegate(m_pItemDelegate);
+	m_pListWidget->setMinimumHeight(400);
+	m_pListWidget->setMinimumWidth(520);
+
+	m_pListWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+	m_pListWidget->setSortingEnabled(true);
+	// connect(m_pListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, SLOT(applyTheme(QListWidgetItem *)));
+
+	connect(m_pListWidget, SIGNAL(customContextMenuRequested(const QPoint &)),
+	    this, SLOT(contextMenuRequested(const QPoint &)));
+	connect(m_pListWidget, SIGNAL(itemSelectionChanged()), this, SLOT(enableDisableButtons()));
+
+	pVBox->addWidget(m_pListWidget);
 }
 
 KviWebPackageManagementDialog::~KviWebPackageManagementDialog()
-    = default;
+{
+	m_pItemDelegate->deleteLater();
+	m_pListWidget->deleteLater();
+}
 
 void KviWebPackageManagementDialog::setPackagePageUrl(const QString & szUrl)
 {
 	m_szPackagePageUrl = szUrl;
-	m_pWebView->load(QUrl(m_szPackagePageUrl));
+	QNetworkRequest req(m_szPackagePageUrl + KVI_WEBPACK_INDEX);
+	QNetworkReply * pReply = KviNetworkAccessManager::getInstance()->get(req);
+	connect(pReply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(slotDataTransferProgress(qint64, qint64)));
+	connect(pReply, &QNetworkReply::finished, [this, pReply]() {
+		m_pProgressBar->hide();
+		m_pProgressBar->setValue(0);
+
+		if (pReply->error() == QNetworkReply::NoError) {
+			QByteArray szJsonData = pReply->readAll();
+			QJsonParseError jsonError{};
+			QJsonDocument jsonResponse = QJsonDocument::fromJson(szJsonData, &jsonError);
+
+			if (jsonError.error == QJsonParseError::NoError && jsonResponse.isArray()) {
+				QJsonArray jsonArray = jsonResponse.array();
+
+				foreach(QJsonValue jsonValue, jsonArray)
+				{
+					if(!jsonValue.isObject())
+						continue;
+					KviWebPackageListItem * item = new KviWebPackageListItem(m_pListWidget, jsonValue.toObject(), m_szPackagePageUrl);
+				}
+			}
+		} else {
+			QMessageBox::critical(this, __tr2qs("Error"), __tr2qs("Network error: %1.").arg(pReply->errorString()));
+		}
+
+		pReply->deleteLater();
+		enableDisableButtons();
+    });
+
+	enableDisableButtons();
+	m_pProgressBar->show();
 }
 
-void KviWebPackageManagementDialog::slotLoadFinished(bool bOk)
+void KviWebPackageManagementDialog::enableDisableButtons()
 {
-	if(!bOk)
+	QList<QListWidgetItem *> itemsSelected = m_pListWidget->selectedItems();
+	if(itemsSelected.count() == 0)
 	{
-		qDebug("Error loading page"); // fixme: add warning dialog		return;
+		m_pPreviewButton->setEnabled(false);
+		m_pDeleteButton->setEnabled(false);
 		return;
 	}
 
-	m_pProgressBar->hide();
-	m_pProgressBar->setValue(0);
+	KviWebPackageListItem * pItem = dynamic_cast<KviWebPackageListItem *>(itemsSelected.at(0));
 
-	if(!isVisible())
-		show();
-
-	// main frame
-	QWebFrame * pFrame = m_pWebView->page()->mainFrame();
-
-	// search for all item_entry div
-	QWebElementCollection elementscollection = pFrame->documentElement().findAll("div.item_entry");
-
-	// if this is null something is wrong
-	if(elementscollection.count())
-	{
-		foreach(QWebElement element, elementscollection)
-		{
-			// web element 'title'
-			QWebElement eId = element.findFirst("span.item_id");
-			// string title
-			QString szId = eId.toPlainText();
-			// number version
-			QString szVersion = element.findFirst("span.item_version").toPlainText();
-			//QString t=szLocalThemesPath+szTitle+"-"+szVersion;
-			// is the theme installed?
-
-			if(packageIsInstalled(szId, szVersion))
-			{
-				// yeah: change the background color for highlight the item
-				element.findFirst("div.item_identification").setStyleProperty("background", "none repeat scroll 0 0 #3cd543");
-				// then change the 'install' text into 'uninstall'
-				QWebElement eDownload = element.findFirst("a.item_download_link");
-				eDownload.setPlainText("Uninstall");
-				// why use a c++ var when we can use the web page for store it? :-D
-				eDownload.setAttribute("Installed", QString("1"));
-			}
-		}
-	}
+	m_pPreviewButton->setEnabled(!pItem->icon().isNull());
+	m_pDeleteButton->setEnabled(!packageIsInstalled(pItem->name(), pItem->version()));
 }
-void KviWebPackageManagementDialog::slotLinkClicked(const QUrl & url)
+
+void KviWebPackageManagementDialog::contextMenuRequested(const QPoint & pos)
 {
+	KviWebPackageListItem * pItem = dynamic_cast<KviWebPackageListItem *>(m_pListWidget->itemAt(pos));
+	if(pItem == nullptr)
+		return;
+
+	m_pListWidget->setCurrentItem(pItem);
+	m_pContextPopup->clear();
+
+	if(!pItem->icon().isNull())
+	{
+		m_pContextPopup->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::Canvas)), __tr2qs("Show Preview"), pItem, SLOT(showPopupImage()));
+	}
+
+	if(!packageIsInstalled(pItem->name(), pItem->version()))
+		m_pContextPopup->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::Package)), __tr2qs("Download"), this, SLOT(downloadItem()));
+
+	m_pContextPopup->popup(m_pListWidget->viewport()->mapToGlobal(pos));
+}
+
+void KviWebPackageManagementDialog::showItemPreview()
+{
+	QList<QListWidgetItem *> itemsSelected = m_pListWidget->selectedItems();
+	if(itemsSelected.count() == 0)
+		return;
+
+	KviWebPackageListItem * pItem = dynamic_cast<KviWebPackageListItem *>(itemsSelected.at(0));
+	pItem->showPopupImage();
+}
+
+void KviWebPackageManagementDialog::downloadItem()
+{
+	QList<QListWidgetItem *> itemsSelected = m_pListWidget->selectedItems();
+	if(itemsSelected.count() == 0)
+		return;
+
+	KviWebPackageListItem * pItem = dynamic_cast<KviWebPackageListItem *>(itemsSelected.at(0));
+
 	// check if one download is running
 	if(m_bBusy)
 		return;
-	QString szScheme = url.scheme();
-	// it's an ftp link?
-	if(!KviQString::equalCI(szScheme, "ftp"))
-	{
-		m_pProgressBar->show();
-		m_pWebView->load(url);
-		return;
-	}
 
-	// let's search for the 'a' tag
-	QWebElementCollection elementscollection = m_pWebView->page()->mainFrame()->findAllElements("a.item_download_link");
-	if(elementscollection.count() == 0)
-		return;
+	m_bBusy = true;
 
-	foreach(QWebElement element, elementscollection)
-	{
-		// check the href to find the item
-		if(!KviQString::equalCI(element.attribute("href"), url.toString()))
-			continue;
+	QNetworkRequest req(m_szPackagePageUrl + pItem->download());
+	QNetworkReply * pReply = KviNetworkAccessManager::getInstance()->get(req);
+	connect(pReply, SIGNAL(finished()), this, SLOT(slotDownloadFinished()));
+	connect(pReply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(slotDataTransferProgress(qint64, qint64)));
 
-		// check the hidden attribute for installed item
-		if(element.attribute("Installed").isEmpty())
-		{
-			// one download at once
-			m_bBusy = true;
-
-			QNetworkRequest req(url);
-			QNetworkReply * pReply = KviNetworkAccessManager::getInstance()->get(req);
-			connect(pReply, SIGNAL(finished()), this, SLOT(slotCommandFinished()));
-			connect(pReply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(slotDataTransferProgress(qint64, qint64)));
-
-			m_pProgressBar->show();
-		}
-		else
-		{
-			qDebug("uninstall theme"); //to be continued
-		}
-	}
+	m_pProgressBar->show();
 }
 
 void KviWebPackageManagementDialog::slotDataTransferProgress(qint64 iDone, qint64 iTotal)
@@ -208,65 +295,54 @@ void KviWebPackageManagementDialog::slotDataTransferProgress(qint64 iDone, qint6
 	m_pProgressBar->setFormat(__tr2qs("Downloading: %p%"));
 }
 
-void KviWebPackageManagementDialog::slotLoadProgress(int iProgress)
+void KviWebPackageManagementDialog::slotDownloadFinished()
 {
-	m_pProgressBar->setMaximum(100);
-	m_pProgressBar->setValue(iProgress);
-	m_pProgressBar->setFormat(__tr2qs("Loading: %p%"));
-}
-
-void KviWebPackageManagementDialog::slotCommandFinished()
-{
-	QNetworkReply * reply = qobject_cast<QNetworkReply *>(sender());
+	QNetworkReply * pReply = qobject_cast<QNetworkReply *>(sender());
 
 	m_pProgressBar->hide();
 	m_pProgressBar->setValue(0);
 
-	if(reply)
+	if(pReply == nullptr)
+		return;
+
+	if(pReply->error() != QNetworkReply::NoError)
 	{
-		if(reply->error() == QNetworkReply::NoError)
-		{
-			//read data from reply
-			QString szUrl = reply->url().toString();
-			int iIdx = szUrl.lastIndexOf("/");
-			QString szFile = szUrl.right(szUrl.length() - iIdx - 1);
-			QFile tmpFile;
-			g_pApp->getLocalKvircDirectory(m_szLocalTemporaryPath, KviApplication::Tmp, szFile);
-			tmpFile.setFileName(m_szLocalTemporaryPath);
-			tmpFile.open(QIODevice::ReadWrite);
-			tmpFile.write(reply->readAll());
-			tmpFile.close();
-
-			QString szError;
-			if(!installPackage(m_szLocalTemporaryPath, szError))
-			{
-				KviMessageBox::information(szError);
-			}
-			else
-			{
-				m_pWebView->load(QUrl(m_szPackagePageUrl));
-			}
-			QFileInfo info(m_szLocalTemporaryPath);
-
-			if(info.exists())
-				KviFileUtils::removeFile(m_szLocalTemporaryPath);
-			m_bBusy = false;
-		}
-		else
-		{
-			//get http status code
-			int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-			KviMessageBox::information(__tr2qs("Download failed: %1").arg(reply->errorString()));
-		}
-		reply->deleteLater();
+		// get http status code
+		int httpStatus = pReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+		KviMessageBox::information(__tr2qs("Download failed: %1").arg(pReply->errorString()));
+		pReply->deleteLater();
+		return;
 	}
+
+	// read data from reply
+	QString szUrl = pReply->url().toString();
+	int iIdx = szUrl.lastIndexOf("/");
+	QString szFile = szUrl.right(szUrl.length() - iIdx - 1);
+	QFile tmpFile;
+	g_pApp->getLocalKvircDirectory(m_szLocalTemporaryPath, KviApplication::Tmp, szFile);
+	tmpFile.setFileName(m_szLocalTemporaryPath);
+	tmpFile.open(QIODevice::ReadWrite);
+	tmpFile.write(pReply->readAll());
+	tmpFile.close();
+
+	QString szError;
+	if(!installPackage(m_szLocalTemporaryPath, szError))
+	{
+		KviMessageBox::information(szError);
+	}
+	QFileInfo info(m_szLocalTemporaryPath);
+
+	if(info.exists())
+		KviFileUtils::removeFile(m_szLocalTemporaryPath);
+
+	m_bBusy = false;
+	enableDisableButtons();
+	pReply->deleteLater();
 }
 
 void KviWebPackageManagementDialog::showEvent(QShowEvent *)
 {
 	m_pProgressBar->hide();
-	QRect rect = g_pApp->desktop()->screenGeometry(g_pMainWindow);
+	QRect rect = g_pMainWindow->screen()->availableGeometry();
 	move(rect.x() + ((rect.width() - width()) / 2), rect.y() + ((rect.height() - height()) / 2));
 }
-
-#endif //COMPILE_WEBKIT_SUPPORT

@@ -1,0 +1,97 @@
+name: Build macOS
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+    tags:
+      - '*'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build-macos:
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-macos-release
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.6.2
+          modules: qt5compat qtmultimedia
+
+      - name: Install other prerequisites
+        run: |
+          brew update
+          brew install enchant openssl create-dmg --force-bottle || true
+
+      - name: Configure CMake
+        run: |
+          cd '${{github.workspace}}'
+          mkdir build
+          cd build
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DWANT_PYTHON=OFF \
+            ..
+
+      - name: Build
+        run: |
+          cd '${{github.workspace}}'
+          cd build
+          cmake --build .
+
+      - name: Install
+        run: |
+          cd '${{github.workspace}}'
+          cd build
+          cmake --install .
+
+      - name: Deployt Qt
+        run: |
+          cd '${{github.workspace}}'
+          macdeployqt "build/KVIrc.app" -appstore-compliant
+
+      - name: Detect version
+        shell: bash
+        run: |
+          cd '${{github.workspace}}'
+          kvi_version=$(grep -i "^set(VERSION_RELEASE .*)$" CMakeLists.txt | egrep -o '[0-9\.]' | tr -d '\n')
+          git_desc=$(git describe --always)
+          echo "dmg_name=KVIrc-$kvi_version-dev-$(date +%F)-git-$git_desc" >> "$GITHUB_ENV"
+
+      - name: Work around macOS being awful
+        shell: bash
+        run: |
+          # BUG: https://github.com/actions/runner-images/issues/7522
+          echo Killing XProtect...; sudo pkill -9 XProtect >/dev/null || true;
+          echo Waiting for XProtect process...; while pgrep XProtect; do sleep 3; done;
+
+      - name: Create DMG
+        shell: bash
+        run: |
+          cd '${{github.workspace}}'
+          create-dmg --volname "${{ env.dmg_name }}" \
+            --background "dist/macos/installer_background.png" \
+            --window-pos 200 120 \
+            --window-size 800 450 \
+            --icon KVIrc.app 200 190 \
+            --icon-size 100 \
+            --app-drop-link 600 185 "${{ env.dmg_name }}.dmg" "build/KVIrc.app"
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.dmg_name }}.dmg
+          path: ${{ env.dmg_name }}.dmg

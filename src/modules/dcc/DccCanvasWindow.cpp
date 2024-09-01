@@ -114,7 +114,7 @@ DccCanvasWindow::DccCanvasWindow(DccDescriptor * dcc, const char * name)
 			output(KVI_OUT_DCCMSG, __tr2qs_ctx("Contacting host %Q on port %Q", "dcc"), &(dcc->szIp), &(dcc->szPort));
 	}
 
-	//	m_pSlaveThread = 0;
+	//	m_pSlaveThread = nullptr;
 }
 
 DccCanvasWindow::~DccCanvasWindow()
@@ -124,7 +124,7 @@ DccCanvasWindow::~DccCanvasWindow()
 	//	{
 	//		m_pSlaveThread->terminate();
 	//		delete m_pSlaveThread;
-	//		m_pSlaveThread = 0;
+	//		m_pSlaveThread = nullptr;
 	//	}
 	KviThreadManager::killPendingEvents(this);
 	//	delete m_pDescriptor;
@@ -134,7 +134,7 @@ DccCanvasWindow::~DccCanvasWindow()
 const QString & DccCanvasWindow::target()
 {
 	// This may change on the fly...
-	m_szTarget.sprintf("%s@%s:%s",
+	m_szTarget = QString::asprintf("%s@%s:%s",
 	    m_pDescriptor->szNick.toUtf8().data(), m_pDescriptor->szIp.toUtf8().data(), m_pDescriptor->szPort.toUtf8().data());
 	return m_szTarget;
 }
@@ -162,7 +162,7 @@ void DccCanvasWindow::getBaseLogFileName(KviCString & buffer)
 	buffer.sprintf("%s_%s_%s", m_pDescriptor->szNick.toUtf8().data(), m_pDescriptor->szIp.toUtf8().data(), m_pDescriptor->szPort.toUtf8().data());
 }
 
-void DccCanvasWindow::ownMessage(const char * text, bool bUserFeedback)
+void DccCanvasWindow::ownMessage(const QString & text, bool bUserFeedback)
 {
 	KviCString buf(KviCString::Format, "%s\r\n", text);
 	//	m_pSlaveThread->sendRawData(buf.ptr(),buf.len());
@@ -173,7 +173,7 @@ void DccCanvasWindow::ownMessage(const char * text, bool bUserFeedback)
 		    m_pDescriptor->szLocalHost.toUtf8().data(), text);
 }
 
-void DccCanvasWindow::ownAction(const char * text)
+void DccCanvasWindow::ownAction(const QString & text)
 {
 	KviCString buf(KviCString::Format, "%cACTION %s%c\r\n", text);
 	//	m_pSlaveThread->sendRawData(buf.ptr(),buf.len());

@@ -90,6 +90,7 @@
 #include "KviRuntimeInfo.h"
 
 #include <QMenu>
+#include <QPainter>
 #include <algorithm>
 
 #ifndef COMPILE_NO_IPC
@@ -114,7 +115,10 @@
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 #include <QPluginLoader>
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 #include <QtWin>
+#endif
+#include <QScreen>
 #endif
 
 #ifdef COMPILE_DBUS_SUPPORT
@@ -122,12 +126,12 @@
 #endif
 
 #ifdef COMPILE_KDE_SUPPORT
-#ifdef COMPILE_KDE4_SUPPORT
-#include <KStandardDirs>
-#else
 #include <QStandardPaths>
-#endif
 #include <KNotification>
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#include <KStartupInfo>
+#include <KWindowSystem>
+#endif
 #endif
 
 #ifdef COMPILE_QX11INFO_SUPPORT
@@ -149,8 +153,8 @@ DO NOT REMOVE THEM EVEN IF THEY ARE DEFINED ALSO IN KviApplication.h
 
 #include <QDir>
 
-#include <stdlib.h> // rand & srand
-#include <time.h>   // time() in srand()
+#include <cstdlib>  // rand & srand
+#include <ctime>    // time() in srand()
 #include <map>      // std::map<>
 
 // Global application pointer
@@ -188,7 +192,6 @@ KVIRC_API QPixmap * g_pShadedParentGlobalDesktopBackground = nullptr; // the pix
 KVIRC_API QPixmap * g_pShadedChildGlobalDesktopBackground = nullptr;  // the pixmap that we use for MdiChild
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 #include <winuser.h>
-#include <QDesktopWidget>
 #endif
 #endif
 
@@ -224,19 +227,9 @@ KviApplication::KviApplication(int & argc, char ** argv)
 	kvi_socket_flushTrafficCounters();
 	// don't let qt quit the application by itself
 	setQuitOnLastWindowClosed(false);
-#if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
-	m_bPortable = KviFileUtils::fileExists(g_pApp->applicationDirPath() + KVI_PATH_SEPARATOR_CHAR + "portable");
-#endif
 
-//note: the early qApp->style() call leads to a crash on osx
-#if !defined(COMPILE_ENABLE_GTKSTYLE) && !defined(COMPILE_ON_MAC)
-	// workaround for gtk+ style forcing a crappy white background (ticket #777, #964, #1009, ..)
-	if(QString("QGtkStyle").compare(qApp->style()->metaObject()->className()) == 0)
-	{
-		setStyle(QStyleFactory::create("Fusion"));
-		setPalette(style()->standardPalette());
-	}
-#endif
+	// Restore Qt5-like rounding to fix HiDPI support on QWebEngine
+	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Round);
 }
 
 void KviApplication::setup()
@@ -339,6 +332,16 @@ void KviApplication::setup()
 #ifdef COMPILE_PSEUDO_TRANSPARENCY
 	updatePseudoTransparency();
 #endif
+
+	{
+		// set global Qt style if needed
+		QString requestedQtStyle = KVI_OPTION_STRING(KviOption_stringQtStyle);
+
+		if(!requestedQtStyle.isEmpty() && QStyleFactory::keys().contains(requestedQtStyle)) {
+			setStyle(QStyleFactory::create(requestedQtStyle));
+			setPalette(style()->standardPalette());
+		}
+	}
 
 	// enforce our "icon in popups" option - this is done also in each updateGui() call
 	setAttribute(Qt::AA_DontShowIconsInMenus, !KVI_OPTION_BOOL(KviOption_boolShowIconsInPopupMenus));
@@ -690,13 +693,11 @@ void KviApplication::notifierMessage(KviWindow * pWnd, int iIconId, const QStrin
 
 		if(!bKNotifyConfigFileChecked)
 		{
-#ifdef COMPILE_KDE4_SUPPORT
-			QString szFileName = KStandardDirs::locateLocal("data", QString::fromUtf8("kvirc/kvirc.notifyrc"));
-#else
-			QString szFileName = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/" + QString::fromUtf8("kvirc/kvirc.notifyrc");
-#endif
-			if(szFileName.isEmpty())
-				szFileName = QString::fromUtf8("%1/.kde/share/apps/kvirc/kvirc.notifyrc").arg(QDir::homePath());
+			QString szDataDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+			if(szDataDir.isEmpty())
+				szDataDir = QString::fromUtf8("%1/.local/share").arg(QDir::homePath());
+			QString szFileName = QString::fromUtf8("%1/knotifications%2/kvirc.notifyrc")
+				.arg(szDataDir).arg(QT_VERSION_MAJOR);
 
 			QFileInfo inf(szFileName);
 
@@ -721,10 +722,6 @@ void KviApplication::notifierMessage(KviWindow * pWnd, int iIconId, const QStrin
 
 			bKNotifyConfigFileChecked = true;
 		}
-
-		QStringList actions;
-		actions << __tr2qs("View");
-		actions << __tr2qs("Ignore");
 
 		QPixmap * pIcon = nullptr;
 		KviIconManager::SmallIcon eIcon = KviIconManager::None;
@@ -796,30 +793,60 @@ void KviApplication::notifierMessage(KviWindow * pWnd, int iIconId, const QStrin
 			pIcon = g_pIconManager->getSmallIcon(eIcon);
 
 		KNotification * pNotify = nullptr;
-#if defined(COMPILE_KDE4_SUPPORT)
-#if KDE_IS_VERSION(4, 4, 0)
-		pNotify = new KNotification("incomingMessage", KNotification::CloseWhenWidgetActivated, this);
-#else
-		pNotify = new KNotification("incomingMessage", g_pMainWindow, KNotification::CloseWhenWidgetActivated);
-#endif
-#else
-		pNotify = new KNotification("incomingMessage", g_pMainWindow, KNotification::CloseWhenWidgetActivated);
-#endif
-		pNotify->setFlags(KNotification::Persistent);
+		pNotify = new KNotification("incomingMessage");
 		pNotify->setTitle(szTitle);
 		pNotify->setText(szText);
-		pNotify->setActions(actions);
 		pNotify->setPixmap(*pIcon);
-
-#if defined(COMPILE_KDE4_SUPPORT)
-		pNotify->setComponentData(KComponentData(aboutData()));
-#else
 		pNotify->setComponentName("kvirc");
-#endif
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+		QStringList actions;
+		actions << __tr2qs("View");
+		actions << __tr2qs("Ignore");
+
+		pNotify->setActions(actions);
+		pNotify->setFlags(KNotification::CloseWhenWidgetActivated|KNotification::Persistent);
+		pNotify->setWidget(g_pMainWindow);
 
 		connect(pNotify, SIGNAL(activated()), this, SLOT(showParentFrame()));
 		connect(pNotify, SIGNAL(action1Activated()), this, SLOT(showParentFrame()));
 		connect(pNotify, SIGNAL(action2Activated()), pNotify, SLOT(close()));
+#else
+		KNotificationAction *action = nullptr;
+
+		auto activate = [this, pNotify] () {
+			if (!g_pMainWindow)
+				return;
+
+			QString szToken = pNotify->xdgActivationToken();
+			if(szToken.isEmpty())
+				return showParentFrame();
+
+			QWindow * pWindow = g_pMainWindow->windowHandle();
+			if(KWindowSystem::isPlatformX11())
+			{
+				KStartupInfo::setNewStartupId(pWindow, szToken.toUtf8());
+			}
+			else if(KWindowSystem::isPlatformWayland())
+			{
+				KWindowSystem::setCurrentXdgActivationToken(szToken);
+			}
+			KWindowSystem::activateWindow(pWindow);
+		};
+
+		action = pNotify->addDefaultAction(__tr2qs("View"));
+		connect(action, &KNotificationAction::activated, this, activate);
+
+		action = pNotify->addAction(__tr2qs("View"));
+		connect(action, &KNotificationAction::activated, this, activate);
+
+		action = pNotify->addAction(__tr2qs("Ignore"));
+		connect(action, SIGNAL(activated()), pNotify, SLOT(close()));
+
+		pNotify->setFlags(KNotification::CloseWhenWindowActivated|KNotification::Persistent);
+		pNotify->setWindow(g_pMainWindow->windowHandle());
+#endif // QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+
 		connect(pNotify, SIGNAL(ignored()), pNotify, SLOT(close()));
 
 		pNotify->sendEvent();
@@ -836,7 +863,7 @@ void KviApplication::notifierMessage(KviWindow * pWnd, int iIconId, const QStrin
 			// org.freedesktop.Notifications.Notify
 			QVariantList args;
 			args << QString("KVIrc");                          // application name
-			args << QVariant(QVariant::UInt);                  // notification id
+			args << QVariant(0);                               // notification id
 			args << szIcon;                                    // application icon
 			args << szTitle;                                   // summary text
 			args << szText;                                    // detailed text
@@ -862,7 +889,7 @@ void KviApplication::notifierMessage(KviWindow * pWnd, int iIconId, const QStrin
 
 			KviNotifierMessageParam s;
 			s.pWindow = pWnd;
-			s.szIcon.sprintf("%d", iIconId);
+			s.szIcon = QString::asprintf("%d", iIconId);
 			s.szMessage = szMsg;
 			s.uMessageLifetime = uMessageLifetime;
 
@@ -950,26 +977,35 @@ void KviApplication::checkSuggestRestoreDefaultScript()
 	// first: check if the user configuration has ever been updated to the current version
 	if(!KviDefaultScriptManager::instance()->isDefscriptUpToDate())
 	{
-		switch(
-		    QMessageBox::question(nullptr, __tr2qs("Update Default Scripts - KVIrc"),
-		        __tr2qs("<b>Your KVirc installation has been updated successfully.</b><br><br>"
-		                "KVIrc's default scripts should also be updated. "
-		                "<b>Do you want to restore the default scripts?</b><br><br>"
-		                "Hint: If you choose \"No\" you can always restore the "
-		                "default scripts by selecting the appropriate entry from the \"Scripting\" menu later."),
-		        __tr2qs("No and Don't Ask Me Again"), __tr2qs("No"), __tr2qs("Yes"), 1, 1))
+		QMessageBox msg(nullptr);
+		msg.setIcon(QMessageBox::Question);
+		msg.setWindowTitle(__tr2qs("Update Default Scripts - KVIrc"));
+		msg.setText(__tr2qs("<b>Your KVirc installation has been updated successfully.</b><br><br>"
+		                    "KVIrc's default scripts should also be updated. "
+		                    "<b>Do you want to restore the default scripts?</b><br><br>"
+		                    "Hint: If you choose \"No\" you can always restore the "
+		                    "default scripts by selecting the appropriate entry from the \"Scripting\" menu later."));
+		QPushButton * neverButton = msg.addButton(__tr2qs("No and Don't Ask Me Again"), QMessageBox::NoRole);
+		QPushButton * noButton    = msg.addButton(__tr2qs("No"), QMessageBox::NoRole);
+		QPushButton * yesButton   = msg.addButton(__tr2qs("Yes"), QMessageBox::YesRole);
+		msg.setDefaultButton(noButton);
+		msg.setEscapeButton(noButton);
+		msg.exec();
+
+		if(msg.clickedButton() == neverButton)
 		{
-			case 0:
-				KVI_OPTION_BOOL(KviOption_boolDoNotSuggestRestoreDefaultScript) = true;
-				return;
-				break;
-			case 1:
-				// we want to execute the next checks, don't return now
-				break;
-			default:
-				restoreDefaultScript();
-				// we want to execute the next checks after the attempted restore, don't return now
-				break;
+			KVI_OPTION_BOOL(KviOption_boolDoNotSuggestRestoreDefaultScript) = true;
+			return;
+		}
+		else if(msg.clickedButton() == yesButton)
+		{
+			restoreDefaultScript();
+			// we want to execute the next checks after the attempted restore, don't return now
+		}
+		else
+		{
+			// "no button" or no button cliecked
+			// we want to execute the next checks, don't return now
 		}
 	}
 
@@ -1014,25 +1050,33 @@ void KviApplication::checkSuggestRestoreDefaultScript()
 
 	bSuggestedOnce = true;
 
-	switch(
-	    QMessageBox::question(nullptr, __tr2qs("Detected Installation Issues - KVIrc"),
-	        __tr2qs("<b>Your KVIrc installation is incomplete.</b><br><br>"
-	                "You seem to be missing some of the features that the KVIrc default scripts provide. "
-	                "<b>Do you want to restore the default scripts?</b><br><br>"
-	                "Hint: If you choose \"No\" you can always restore the "
-	                "default scripts by selecting the appropriate entry from the \"Scripting\" menu later."),
-	        __tr2qs("No and Don't Ask Me Again"), __tr2qs("No"), __tr2qs("Yes"), 1, 1))
+	QMessageBox msg(nullptr);
+	msg.setIcon(QMessageBox::Question);
+	msg.setWindowTitle(__tr2qs("Detected Installation Issues - KVIrc"));
+	msg.setText(__tr2qs("<b>Your KVIrc installation is incomplete.</b><br><br>"
+	                    "You seem to be missing some of the features that the KVIrc default scripts provide. "
+	                    "<b>Do you want to restore the default scripts?</b><br><br>"
+	                    "Hint: If you choose \"No\" you can always restore the "
+	                    "default scripts by selecting the appropriate entry from the \"Scripting\" menu later."));
+	QPushButton * neverButton = msg.addButton(__tr2qs("No and Don't Ask Me Again"), QMessageBox::NoRole);
+	QPushButton * noButton    = msg.addButton(__tr2qs("No"), QMessageBox::NoRole);
+	QPushButton * yesButton   = msg.addButton(__tr2qs("Yes"), QMessageBox::YesRole);
+	msg.setDefaultButton(noButton);
+	msg.setEscapeButton(noButton);
+	msg.exec();
+
+	if(msg.clickedButton() == neverButton)
 	{
-		case 0:
-			KVI_OPTION_BOOL(KviOption_boolDoNotSuggestRestoreDefaultScript) = true;
-			return;
-			break;
-		case 1:
-			return;
-			break;
-		default:
-			restoreDefaultScript();
-			break;
+		KVI_OPTION_BOOL(KviOption_boolDoNotSuggestRestoreDefaultScript) = true;
+		return;
+	}
+	else if(msg.clickedButton() == yesButton)
+	{
+		restoreDefaultScript();
+	}
+	else
+	{
+		// "no button" or no button cliecked
 	}
 }
 
@@ -1276,7 +1320,7 @@ void KviApplication::updatePseudoTransparency()
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 		if(KVI_OPTION_BOOL(KviOption_boolUseWindowsDesktopForTransparency))
 		{
-			QSize size = g_pApp->desktop()->screenGeometry(g_pApp->desktop()->primaryScreen()).size();
+			QSize size = g_pApp->primaryScreen()->size();
 			// get the Program Manager
 			HWND hWnd = FindWindow(TEXT("Progman"), TEXT("Program Manager"));
 			// Create and setup bitmap
@@ -1290,7 +1334,11 @@ void KviApplication::updatePseudoTransparency()
 			SelectObject(bitmap_dc, null_bitmap);
 			DeleteDC(bitmap_dc);
 			ReleaseDC(0, displayDc);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+			QPixmap pix = QPixmap::fromImage(QImage::fromHBITMAP(bitmap));
+#else
 			QPixmap pix = QtWin::fromHBITMAP(bitmap);
+#endif
 
 			DeleteObject(bitmap);
 
@@ -1594,9 +1642,9 @@ void KviApplication::createFrame()
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 	if(KVI_OPTION_BOOL(KviOption_boolShowTaskBarButton))
-		new KviMainWindow(0);
+		new KviMainWindow(nullptr);
 	else
-		new KviMainWindow(new QWidget(0, 0));
+		new KviMainWindow(new QWidget(nullptr, Qt::Widget));
 #else
 	new KviMainWindow(nullptr);
 #endif

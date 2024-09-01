@@ -112,13 +112,13 @@ public:
 	void addMessage(KviWindow * pWnd, const QString & szImageId, const QString & szText, unsigned int uMessageTime);
 	void setDisableHideOnMainWindowGotAttention(bool b) { m_bDisableHideOnMainWindowGotAttention = b; };
 	void showLineEdit(bool bShow);
-	inline int countTabs() const
+	int countTabs() const
 	{
 		if(m_pWndTabs)
 			return m_pWndTabs->count();
 		return 0;
-	};
-	inline State state() const { return m_eState; };
+	}
+	State state() const { return m_eState; }
 protected:
 	void showEvent(QShowEvent * e) override;
 	void hideEvent(QHideEvent * e) override;
@@ -127,7 +127,11 @@ protected:
 	void mouseReleaseEvent(QMouseEvent * e) override;
 	void mouseMoveEvent(QMouseEvent * e) override;
 	void leaveEvent(QEvent * e) override;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	void enterEvent(QEvent * e) override;
+#else
+	void enterEvent(QEnterEvent * e) override;
+#endif
 	bool eventFilter(QObject * pEdit, QEvent * e) override;
 	void keyPressEvent(QKeyEvent * e) override;
 public slots:

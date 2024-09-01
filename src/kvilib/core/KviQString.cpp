@@ -30,10 +30,10 @@
 #include "KviCString.h"
 #include "KviMemory.h"
 #include "KviLocale.h"
+#include "KviRegExp.h"
 
-#include <ctype.h> // for tolower()
-#include <stdio.h> // for sprintf()
-#include <QRegExp>
+#include <cctype> // for tolower()
+#include <cstdio> // for sprintf()
 
 // kvi_string.cpp
 extern unsigned char iso88591_toLower_map[256];
@@ -1074,13 +1074,13 @@ namespace KviQString
 
 		if(!bIsRegExp)
 		{
-			// In wildcard matching mode, QRegExp not only interprets * and ?, but also [ ]
+			// In wildcard matching mode, KviRegExp not only interprets * and ?, but also [ ]
 			// This workaround embeds square brackes in square brackets (ticket #1264)
 
 			QChar * pPtr = (QChar *)szExp.constData();
 
 			if(!pPtr)
-				return 0;
+				return false;
 
 			while(pPtr->unicode())
 			{
@@ -1102,7 +1102,7 @@ namespace KviQString
 			szWildcard = szExp;
 		}
 
-		QRegExp re(szWildcard, bCs ? Qt::CaseSensitive : Qt::CaseInsensitive, bIsRegExp ? QRegExp::RegExp2 : QRegExp::Wildcard);
+		KviRegExp re(szWildcard, bCs ? KviRegExp::CaseSensitive : KviRegExp::CaseInsensitive, bIsRegExp ? KviRegExp::RegExp : KviRegExp::Wildcard);
 
 		if(bExact)
 			return re.exactMatch(szStr);

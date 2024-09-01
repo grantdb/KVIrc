@@ -48,7 +48,7 @@
 #include <QPushButton>
 #include <QLayout>
 #include <QApplication>
-#include <QDesktopWidget>
+#include <QScreen>
 #include <QLineEdit>
 #include <QLabel>
 #include <QFrame>
@@ -56,9 +56,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QShortcut>
 
-#ifdef COMPILE_WEBKIT_SUPPORT
 #include "WebAddonInterfaceDialog.h"
-#endif //COMPILE_WEBKIT_SUPPORT
 
 AddonManagementDialog * AddonManagementDialog::m_pInstance = nullptr;
 extern QRect g_rectManagementDialogGeometry;
@@ -98,15 +96,13 @@ AddonManagementDialog::AddonManagementDialog(QWidget * p)
 	setObjectName("Addon manager");
 	setWindowIcon(*(g_pIconManager->getSmallIcon(KviIconManager::Addons)));
 
-#ifdef COMPILE_WEBKIT_SUPPORT
 	m_pWebInterfaceDialog = nullptr;
-#endif //COMPILE_WEBKIT_SUPPORT
 
 	m_pInstance = this;
 	QGridLayout * g = new QGridLayout(this);
 
 	KviTalHBox * hb = new KviTalHBox(this);
-	hb->setMargin(1);
+	hb->setContentsMargins(1, 1, 1, 1);
 	hb->setSpacing(1);
 	g->addWidget(hb, 0, 0);
 
@@ -181,7 +177,7 @@ AddonManagementDialog::AddonManagementDialog(QWidget * p)
 	connect(pCloseBtn, SIGNAL(clicked()), this, SLOT(closeClicked()));
 	g->addWidget(pCloseBtn, 2, 0);
 
-	g->setMargin(5);
+	g->setContentsMargins(5, 5, 5, 5);
 	g->setSpacing(5);
 	g->setAlignment(pCloseBtn, Qt::AlignRight);
 
@@ -192,7 +188,7 @@ AddonManagementDialog::AddonManagementDialog(QWidget * p)
 	resize(g_rectManagementDialogGeometry.width(),
 	    g_rectManagementDialogGeometry.height());
 
-	QRect rect = g_pApp->desktop()->screenGeometry(g_pMainWindow);
+	QRect rect = g_pMainWindow->screen()->availableGeometry();
 	move(rect.x() + ((rect.width() - g_rectManagementDialogGeometry.width()) / 2), rect.y() + ((rect.height() - g_rectManagementDialogGeometry.height()) / 2));
 
 	new QShortcut(Qt::Key_Escape, this, SLOT(closeClicked()));
@@ -200,10 +196,8 @@ AddonManagementDialog::AddonManagementDialog(QWidget * p)
 
 AddonManagementDialog::~AddonManagementDialog()
 {
-#ifdef COMPILE_WEBKIT_SUPPORT
 	if(m_pWebInterfaceDialog)
 		delete m_pWebInterfaceDialog;
-#endif //COMPILE_WEBKIT_SUPPORT
 	g_rectManagementDialogGeometry = QRect(pos().x(), pos().y(), size().width(), size().height());
 	m_pInstance = nullptr;
 }
@@ -280,8 +274,8 @@ void AddonManagementDialog::uninstallScript()
 	if(QMessageBox::question(
 	       this,
 	       __tr2qs_ctx("Confirm Addon Uninstallation - KVIrc", "addon"),
-	       txt, __tr2qs_ctx("Yes", "addon"), __tr2qs_ctx("No", "addon"), nullptr, 1)
-	    != 0)
+	       txt)
+	    != QMessageBox::Yes)
 		return;
 
 	KviKvsScriptAddonManager::instance()->unregisterAddon(it->addon()->name(), g_pActiveWindow);
@@ -292,14 +286,22 @@ void AddonManagementDialog::uninstallScript()
 
 void AddonManagementDialog::getMoreScripts()
 {
-#ifdef COMPILE_WEBKIT_SUPPORT
 	if(m_pWebInterfaceDialog)
-		return;
-	m_pWebInterfaceDialog = new WebAddonInterfaceDialog();
-#else  //!COMPILE_WEBKIT_SUPPORT
-	// If change this introducing not-fixed text, remember to escape this using KviQString::escapeKvs()!
-	KviKvsScript::run("openurl http://www.kvirc.net/?id=addons&version=" KVI_VERSION "." KVI_SOURCES_DATE, g_pActiveWindow);
-#endif //!COMPILE_WEBKIT_SUPPORT
+	{
+		m_pWebInterfaceDialog->show();
+	}
+	else
+	{
+		m_pWebInterfaceDialog = new WebAddonInterfaceDialog();
+		QObject::connect(m_pWebInterfaceDialog, SIGNAL(destroyed()), this, SLOT(webInterfaceDialogDestroyed()));
+		m_pWebInterfaceDialog->show();
+	}
+}
+
+void AddonManagementDialog::webInterfaceDialogDestroyed()
+{
+	m_pWebInterfaceDialog = nullptr;
+	fillListView();
 }
 
 void AddonManagementDialog::installScript()
@@ -322,10 +324,7 @@ void AddonManagementDialog::installScript()
 			QMessageBox::critical(
 			    this,
 			    __tr2qs_ctx("Install Addon - KVIrc", "addon"),
-			    szError,
-			    QMessageBox::Ok,
-			    QMessageBox::NoButton,
-			    QMessageBox::NoButton);
+			    szError);
 			return;
 		}
 	}
@@ -337,10 +336,7 @@ void AddonManagementDialog::installScript()
 		QMessageBox::critical(
 		    this,
 		    __tr2qs_ctx("Install Addon - KVIrc", "addon"),
-		    szError,
-		    QMessageBox::Ok,
-		    QMessageBox::NoButton,
-		    QMessageBox::NoButton);
+		    szError);
 	}
 
 	fillListView();

@@ -360,7 +360,7 @@ bool kvi_matchWildExpr(const char * m1, const char * m2)
 bool kvi_matchWildExprCS(const char *m1,const char *m2)
 {
 	if(!(m1 && m2 && (*m1)))return false;
-	const char * savePos1 = 0;
+	const char * savePos1 = nullptr;
 	const char * savePos2 = m2;
 	while(*m1){ //loop managed by m1 (initially first mask)
 		if(*m1=='*'){
@@ -955,7 +955,7 @@ int kvi_strMatchRevCS(const char * str1, const char * str2, int index)
 	s2--;
 
 	// now start comparing
-	while(1)
+	while(true)
 	{
 		/* in this case, we have str1 = "lo" and str2 = "hello" */
 		if(s1 < str1 && !(s2 < str2))
@@ -2657,7 +2657,7 @@ KviCString & KviCString::stripLeft(char c)
 	return (*this);
 }
 
-bool KviCString::getToken(KviCString & str, char sep)
+bool KviCString::getToken(KviCString & str, char sep, bool skipEmpty)
 {
 	KVI_ASSERT(str.m_ptr);
 	KVI_ASSERT(str.m_ptr != m_ptr);
@@ -2673,7 +2673,11 @@ bool KviCString::getToken(KviCString & str, char sep)
 	KviMemory::copy(str.m_ptr, m_ptr, str.m_len);
 	*(str.m_ptr + str.m_len) = '\0';
 	while(*p && (*p == sep))
+	{
 		p++;
+		if(!skipEmpty)
+			break;
+	}
 	cutLeft(p - m_ptr);
 	return (m_len != 0);
 }
@@ -2700,14 +2704,18 @@ bool KviCString::getLine(KviCString & str)
 	return true;
 }
 
-KviCString KviCString::getToken(char sep)
+KviCString KviCString::getToken(char sep, bool skipEmpty)
 {
 	char * p = m_ptr;
 	while(*p && (*p != sep))
 		p++;
 	KviCString ret(m_ptr, p);
 	while(*p && (*p == sep))
+	{
 		p++;
+		if(!skipEmpty)
+			break;
+	}
 	cutLeft(p - m_ptr);
 	return ret;
 }

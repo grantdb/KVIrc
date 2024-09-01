@@ -39,7 +39,7 @@ const int item_flags[] = {
 	Qt::ItemIsDropEnabled,
 	Qt::ItemIsUserCheckable,
 	Qt::ItemIsEnabled,
-	Qt::ItemIsTristate
+	Qt::ItemIsUserTristate
 };
 
 const char * const itemflags_tbl[] = {
@@ -288,7 +288,7 @@ KVSO_CLASS_FUNCTION(listWidget, isChecked)
 	QListWidgetItem * pItem = ((QListWidget *)widget())->item(iIdx);
 	if(!pItem)
 		return true;
-	c->returnValue()->setBoolean(pItem->checkState() == Qt::Checked ? 1 : 0);
+	c->returnValue()->setBoolean(pItem->checkState() == Qt::Checked ? true : false);
 	return true;
 }
 
@@ -418,7 +418,11 @@ KVSO_CLASS_FUNCTION(listWidget, setForeground)
 				return true;
 			}
 		}
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 		col.setNamedColor(szColor);
+#else
+		col = QColor::fromString(szColor);
+#endif
 		col.setAlpha(iOpacity);
 	}
 	else

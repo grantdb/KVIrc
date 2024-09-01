@@ -25,7 +25,7 @@
 #include "TermWindow.h"
 #include "TermWidget.h"
 
-#ifdef COMPILE_KDE4_SUPPORT
+#ifdef COMPILE_KDE_SUPPORT
 #include "KviIconManager.h"
 #include "KviOptions.h"
 #include "KviLocale.h"
@@ -42,7 +42,7 @@ TermWindow::TermWindow(const char * name)
     : KviWindow(KviWindow::Terminal, name)
 {
 	g_pTermWindowList.insert(this);
-	m_pTermWidget = 0;
+	m_pTermWidget = nullptr;
 	m_pTermWidget = new TermWidget(this);
 }
 

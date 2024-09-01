@@ -56,9 +56,6 @@ const QStringList feature_list{
 #ifdef COMPILE_OSS_SUPPORT
 	"OSS",
 #endif
-#ifdef COMPILE_ESD_SUPPORT
-	"ESD",
-#endif
 #ifdef COMPILE_AUDIOFILE_SUPPORT
 	"Audiofile",
 #endif
@@ -68,8 +65,8 @@ const QStringList feature_list{
 #ifdef COMPILE_PHONON_SUPPORT
 	"Phonon",
 #endif
-#ifdef COMPILE_WEBKIT_SUPPORT
-	"Webkit",
+#ifdef COMPILE_WEBENGINE_SUPPORT
+	"WebEngine",
 #endif
 #ifndef COMPILE_DISABLE_DCC_VIDEO
 	"DCCVideo",
@@ -89,10 +86,12 @@ const QStringList feature_list{
 #ifdef COMPILE_ENCHANT_SUPPORT
 	"Enchant",
 #endif
-#ifdef COMPILE_ENABLE_GTKSTYLE
-	"GTK",
-#endif
+	// This is not in "else" branch of below because some scripts may need it,
+	// eg. /echo $features(Qt5) to determine if some features only available when Qt5 are present
 	"Qt5",
+#if(QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+	"Qt6",
+#endif
 	"KVS"
 };
 
@@ -118,26 +117,12 @@ namespace KviBuildInfo
 		return QString(KVIRC_BUILD_FLAGS);
 	}
 
-	QString buildSystem()
-	{
-		return QString(KVIRC_BUILD_SYSTEM);
-	}
-
 	QString buildSystemName()
 	{
 #ifdef COMPILE_ON_WINDOWS
 		return QString();
 #else
 		return QString(KVIRC_BUILD_SYSTEM_NAME);
-#endif
-	}
-
-	QString buildSystemVersion()
-	{
-#ifdef COMPILE_ON_WINDOWS
-		return QString();
-#else
-		return QString(KVIRC_BUILD_SYSTEM_VERSION);
 #endif
 	}
 

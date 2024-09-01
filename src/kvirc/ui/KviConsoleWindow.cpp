@@ -69,6 +69,7 @@
 #include "KviKvsEventTriggers.h"
 #include "KviTalHBox.h"
 #include "KviNickColors.h"
+#include "KviRegExp.h"
 
 #ifdef COMPILE_SSL_SUPPORT
 #include "KviSSLMaster.h"
@@ -79,8 +80,8 @@
 #include <QMessageBox>
 #include <QStringList>
 #include <QCloseEvent>
-#include <QRegExp>
 #include <QMenu>
+#include <QPushButton>
 
 #include "kvi_debug.h"
 
@@ -99,10 +100,9 @@ KviConsoleWindow::KviConsoleWindow(int iFlags) : KviWindow(KviWindow::Console, _
 
 	m_pButtonBox = new KviTalHBox(this);
 	m_pButtonBox->setSpacing(0);
-	m_pButtonBox->setMargin(0);
+	m_pButtonBox->setContentsMargins(0, 0, 0, 0);
 	new QLabel(__tr2qs("Address:"), m_pButtonBox);
 	m_pAddressEdit = new KviThemedComboBox(m_pButtonBox, this, "url_editor");
-	m_pAddressEdit->setAutoCompletion(true);
 	m_pAddressEdit->setDuplicatesEnabled(false);
 	m_pAddressEdit->setEditable(true);
 	m_pAddressEdit->addItem(QIcon(*(g_pIconManager->getSmallIcon(KviIconManager::Url))), "");
@@ -113,7 +113,7 @@ KviConsoleWindow::KviConsoleWindow(int iFlags) : KviWindow(KviWindow::Console, _
 	m_pButtonBox->setObjectName(QLatin1String("kvi_window_button_box"));
 
 	KviTalToolTip::add(m_pAddressEdit, __tr2qs("Current IRC URI"));
-	connect(m_pAddressEdit, SIGNAL(activated(const QString &)), this, SLOT(ircUriChanged(const QString &)));
+	connect(m_pAddressEdit, SIGNAL(textActivated(const QString &)), this, SLOT(ircUriChanged(const QString &)));
 	connect(m_pAddressEdit, SIGNAL(returnPressed(const QString &)), this, SLOT(ircUriChanged(const QString &)));
 	connect(g_pApp, SIGNAL(recentUrlsChanged()), this, SLOT(recentUrlsChanged()));
 
@@ -280,7 +280,7 @@ void KviConsoleWindow::getUserTipText(const QString & nick, KviIrcUserEntry * e,
 
 	if(e->avatar())
 	{
-		buffer += QString(nrs + "<center><img src=\"%1\" width=\"%2\"></center>" + enr).arg(e->avatar()->localPath()).arg(e->avatar()->size().width());
+		buffer += QString(nrs + R"(<center><img src="%1" width="%2"></center>)" + enr).arg(e->avatar()->localPath()).arg(e->avatar()->size().width());
 	}
 
 	if(e->hasRealName())
@@ -340,7 +340,7 @@ void KviConsoleWindow::getUserTipText(const QString & nick, KviIrcUserEntry * e,
 
 		if(e->hasHops())
 		{
-			buffer += "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+			buffer += R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 			buffer += __tr2qs("Hops: <b>%1</b>").arg(e->hops());
 			buffer += "</font>" + enr;
 		}
@@ -353,14 +353,14 @@ void KviConsoleWindow::getUserTipText(const QString & nick, KviIrcUserEntry * e,
 
 	if(e->hasAccountName())
 	{
-		buffer += "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+		buffer += R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 		buffer += __tr2qs("Identified to account: <b>%1</b>").arg(e->accountName());
 		buffer += "</font>" + enr;
 	}
 
 	if(e->isAway())
 	{
-		buffer += "<tr><td width=\"100%\" bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+		buffer += R"(<tr><td width="100%" bgcolor="#E0E0E0"><font color="#000000">)";
 		buffer += __tr2qs("Probably away");
 		buffer += "</font>" + enr;
 	}
@@ -388,7 +388,7 @@ void KviConsoleWindow::getBaseLogFileName(QString & buffer)
 	if(context()->connection())
 		buffer = context()->connection()->target()->network()->name();
 	else
-		buffer = context()->id();
+		buffer = QString::number(context()->id());
 }
 
 void KviConsoleWindow::showNotifyList(bool bShow, bool bIgnoreSizeChange)
@@ -525,25 +525,31 @@ void KviConsoleWindow::closeEvent(QCloseEvent * e)
 		{
 			if(!KVI_OPTION_BOOL(KviOption_boolAlwaysDisconnectClosingConnectedConsole))
 			{
-				switch(QMessageBox::warning(this,
-				    __tr2qs("Confirm Close - KVIrc"),
-				    __tr2qs("You have just attempted to close a console window with an active connection inside.\n"
-				            "Are you sure you wish to terminate the connection?"),
-				    __tr2qs("&Yes"),
-				    __tr2qs("&Always"),
-				    __tr2qs("&No"),
-				    2, 2))
+				QMessageBox msg(this);
+				msg.setIcon(QMessageBox::Warning);
+				msg.setWindowTitle(__tr2qs("Confirm Close - KVIrc"));
+				msg.setText(__tr2qs("You have just attempted to close a console window with an active connection inside.\n"
+				                    "Are you sure you wish to terminate the connection?"));
+				QPushButton * yesButton    = msg.addButton(__tr2qs("&Yes"), QMessageBox::YesRole);
+				QPushButton * alwaysButton = msg.addButton(__tr2qs("&Always"), QMessageBox::YesRole);
+				QPushButton * noButton     = msg.addButton(__tr2qs("&No"), QMessageBox::NoRole);
+				msg.setDefaultButton(noButton);
+				msg.setEscapeButton(noButton);
+				msg.exec();
+
+				if(msg.clickedButton() == yesButton)
 				{
-					case 0:
-						// nothing here
-						break;
-					case 1:
-						KVI_OPTION_BOOL(KviOption_boolAlwaysDisconnectClosingConnectedConsole) = true;
-						break;
-					default: // 2 = no
-						e->ignore();
-						return;
-						break;
+					// nothing here
+				}
+				else if(msg.clickedButton() == alwaysButton)
+				{
+					KVI_OPTION_BOOL(KviOption_boolAlwaysDisconnectClosingConnectedConsole) = true;
+				}
+				else
+				{
+					// "no" button or no button clicked
+					e->ignore();
+					return;
 				}
 			}
 			// ask the context to terminate the connection gracefully
@@ -560,24 +566,30 @@ void KviConsoleWindow::closeEvent(QCloseEvent * e)
 	// this is the only console... ask if the user really wants to quit KVirc
 	if(!KVI_OPTION_BOOL(KviOption_boolAlwaysQuitKVIrcClosingLastConsole))
 	{
-		switch(QMessageBox::warning(this,
-		    __tr2qs("Confirm Close - KVIrc"),
-		    __tr2qs("You have just attempted to close the last console window.\nAre you sure you wish to quit KVIrc?"),
-		    __tr2qs("&Always"),
-		    __tr2qs("&Yes"),
-		    __tr2qs("&No"),
-		    2, 2))
+		QMessageBox msg(this);
+		msg.setIcon(QMessageBox::Warning);
+		msg.setWindowTitle(__tr2qs("Confirm Close - KVIrc"));
+		msg.setText(__tr2qs("You have just attempted to close the last console window.\nAre you sure you wish to quit KVIrc?"));
+		QPushButton * yesButton    = msg.addButton(__tr2qs("&Yes"), QMessageBox::YesRole);
+		QPushButton * alwaysButton = msg.addButton(__tr2qs("&Always"), QMessageBox::YesRole);
+		QPushButton * noButton     = msg.addButton(__tr2qs("&No"), QMessageBox::NoRole);
+		msg.setDefaultButton(noButton);
+		msg.setEscapeButton(noButton);
+		msg.exec();
+
+		if(msg.clickedButton() == yesButton)
 		{
-			case 0:
-				KVI_OPTION_BOOL(KviOption_boolAlwaysQuitKVIrcClosingLastConsole) = true;
-				break;
-			case 1:
-				// nothing here
-				break;
-			default: // 2 = no
-				e->ignore();
-				return;
-				break;
+			// nothing here
+		}
+		else if(msg.clickedButton() == alwaysButton)
+		{
+			KVI_OPTION_BOOL(KviOption_boolAlwaysQuitKVIrcClosingLastConsole) = true;
+		}
+		else
+		{
+			// "no" button or no button clicked
+			e->ignore();
+			return;
 		}
 	}
 
@@ -628,8 +640,9 @@ int KviConsoleWindow::applyHighlighting(KviWindow * wnd, int type, const QString
 	QString szPattern = KVI_OPTION_STRING(KviOption_stringWordSplitters);
 	QString szSource;
 	QString szStripMsg = KviControlCodes::stripControlBytes(szMsg);
-	QRegExp rgxHlite;
+	KviRegExp rgxHlite;
 	Qt::CaseSensitivity cs = KVI_OPTION_BOOL(KviOption_boolCaseSensitiveHighlighting) ? Qt::CaseSensitive : Qt::CaseInsensitive;
+	KviRegExp::CaseSensitivity regexpCs = KVI_OPTION_BOOL(KviOption_boolCaseSensitiveHighlighting) ? KviRegExp::CaseSensitive : KviRegExp::CaseInsensitive;
 
 	if(KVI_OPTION_BOOL(KviOption_boolAlwaysHighlightNick) && connection())
 	{
@@ -642,11 +655,11 @@ int KviConsoleWindow::applyHighlighting(KviWindow * wnd, int type, const QString
 		{
 			if(!szPattern.isEmpty())
 				rgxHlite.setPattern(
-				    QString("(?:[%1]|\\s|^)%2(?:[%1]|\\s|$)").arg(QRegExp::escape(szPattern), QRegExp::escape(connection()->userInfo()->nickName())));
+				    QString("(?:[%1]|\\s|^)%2(?:[%1]|\\s|$)").arg(KviRegExp::escape(szPattern), KviRegExp::escape(connection()->userInfo()->nickName())));
 			else
 				rgxHlite.setPattern(
-				    QString("(?:\\s|^)%1(?:\\s|$)").arg(QRegExp::escape(connection()->userInfo()->nickName())));
-			rgxHlite.setCaseSensitivity(cs);
+				    QString("(?:\\s|^)%1(?:\\s|$)").arg(KviRegExp::escape(connection()->userInfo()->nickName())));
+			rgxHlite.setCaseSensitivity(regexpCs);
 			if(szStripMsg.contains(rgxHlite))
 				return triggerOnHighlight(wnd, type, nick, user, host, szMsg, connection()->userInfo()->nickName());
 		}
@@ -668,11 +681,11 @@ int KviConsoleWindow::applyHighlighting(KviWindow * wnd, int type, const QString
 			{
 				if(!szPattern.isEmpty())
 					rgxHlite.setPattern(
-					    QString("(?:[%1]|\\s|^)%2(?:[%1]|\\s|$)").arg(QRegExp::escape(szPattern), QRegExp::escape(it)));
+					    QString("(?:[%1]|\\s|^)%2(?:[%1]|\\s|$)").arg(KviRegExp::escape(szPattern), KviRegExp::escape(it)));
 				else
 					rgxHlite.setPattern(
-					    QString("(?:\\s|^)%1(?:\\s|$)").arg(QRegExp::escape(it)));
-				rgxHlite.setCaseSensitivity(cs);
+					    QString("(?:\\s|^)%1(?:\\s|$)").arg(KviRegExp::escape(it)));
+				rgxHlite.setCaseSensitivity(regexpCs);
 				if(szStripMsg.contains(rgxHlite))
 					return triggerOnHighlight(wnd, type, nick, user, host, szMsg, it);
 			}
@@ -825,14 +838,14 @@ void KviConsoleWindow::outputPrivmsg(KviWindow * wnd,
 				szNick.prepend(KviNickColors::getSmartColor(sum, KVI_OPTION_BOOL(KviOption_boolColorNicksWithBackground)));
 			}
 		}
-		szNick.prepend(KviControlCodes::Color);
-		szNick.append(KviControlCodes::Color);
+		szNick.prepend((char) KviControlCodes::Color);
+		szNick.append((char) KviControlCodes::Color);
 	}
 
 	if(KVI_OPTION_BOOL(KviOption_boolBoldedNicks))
 	{
-		szNick.prepend(KviControlCodes::Bold);
-		szNick.append(KviControlCodes::Bold);
+		szNick.prepend((char) KviControlCodes::Bold);
+		szNick.append((char) KviControlCodes::Bold);
 	}
 
 	QString szMessage;
@@ -1270,7 +1283,7 @@ void KviConsoleWindow::getWindowListTipText(QString & buffer)
 
 		QString szTmp;
 		QDateTime date;
-		date.setTime_t(connection()->statistics()->connectionStartTime());
+		date.setSecsSinceEpoch(connection()->statistics()->connectionStartTime());
 		switch(KVI_OPTION_UINT(KviOption_uintOutputDatetimeFormat))
 		{
 			case 0:
@@ -1282,7 +1295,7 @@ void KviConsoleWindow::getWindowListTipText(QString & buffer)
 				szTmp = date.toString(Qt::ISODate);
 				break;
 			case 2:
-				szTmp = date.toString(Qt::SystemLocaleShortDate);
+				szTmp = QLocale().toString(date, QLocale::ShortFormat);
 				break;
 		}
 
@@ -1306,7 +1319,7 @@ void KviConsoleWindow::getWindowListTipText(QString & buffer)
 		buffer += tspan;
 		buffer += html_eofbold;
 
-		buffer += enr + "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+		buffer += enr + R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 
 		tspan = KviTimeUtils::formatTimeInterval((unsigned int)(kvi_secondsSince(connection()->statistics()->lastMessageTime())),
 		    KviTimeUtils::NoLeadingEmptyIntervals | KviTimeUtils::NoLeadingZeroes);

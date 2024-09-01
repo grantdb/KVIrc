@@ -93,8 +93,8 @@ public:
 		QList<uint> positions;
 	};
 
-	HelpIndex(const QString & dp, const QString & hp);
-	HelpIndex(const QStringList & dl, const QString & hp);
+	HelpIndex(QString dp, const QString & hp);
+	HelpIndex(QStringList dl, const QString & hp);
 	void writeDict();
 	void readDict();
 	void makeIndex();
@@ -128,7 +128,6 @@ private:
 	bool searchForPattern(const QStringList &, const QStringList &, const QString &);
 	void buildMiniDict(const QString &);
 
-	QString getCharsetForDocument(QFile *);
 	QStringList docList;
 	QStringList titleList;
 	QHash<QString, Entry *> dict;

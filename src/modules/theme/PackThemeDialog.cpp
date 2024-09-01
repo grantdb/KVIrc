@@ -37,13 +37,12 @@
 #include "kvi_fileextensions.h"
 #include "KviSelectors.h"
 #include "KviMiscUtils.h"
+#include "KviRegExp.h"
 #include "kvi_sourcesdate.h"
 
 #include <QLineEdit>
 #include <QLabel>
 #include <QTextEdit>
-
-#include <QRegExp>
 #include <QMessageBox>
 #include <QDir>
 #include <QDateTime>
@@ -165,7 +164,7 @@ void PackThemeDataWidget::parseThemes(KviPointerList<KviThemeInfo> * pThemeInfoL
 			szPackageVersion = pThemeInfo->version();
 
 			szPackagePath += pThemeInfo->subdirectory();
-			if(szPackagePath.indexOf(QRegExp("[0-9]\\.[0-9]")) == -1)
+			if(szPackagePath.indexOf(KviRegExp("[0-9]\\.[0-9]")) == -1)
 			{
 				szPackagePath += "-";
 				szPackagePath += szPackageVersion;
@@ -354,8 +353,7 @@ void PackThemeImageWidget::imageSelectionChanged(const QString & szImagePath)
 		return;
 	}
 
-	QMessageBox::critical(this, __tr2qs_ctx("Export Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected image!", "theme"),
-	    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+	QMessageBox::critical(this, __tr2qs_ctx("Export Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected image!", "theme"));
 
 	m_pImageSelector->setSelection("");
 	m_pImageLabel->setPixmap(QPixmap());
@@ -434,15 +432,13 @@ bool PackThemeDialog::packTheme()
 	{
 		QMessageBox::critical(this,
 		    __tr2qs_ctx("Export Theme - KVIrc", "theme"),
-		    szError,
-		    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		    szError);
 		return false;
 	}
 
 	QMessageBox::information(this,
 	    __tr2qs_ctx("Exporting Theme - KVIrc", "theme"),
-	    __tr2qs("Theme package saved successfully."),
-	    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+	    __tr2qs("Theme package saved successfully."));
 
 	return true;
 }

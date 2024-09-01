@@ -33,9 +33,9 @@
 
 #include "kvi_settings.h"
 #include "kvi_sourcesdate.h"
+#include <QStringList>
 
 class QString;
-class QStringList;
 
 extern KVILIB_API const QStringList feature_list;
 
@@ -77,28 +77,12 @@ namespace KviBuildInfo
 	extern KVILIB_API QString buildFlags();
 
 	/**
-	* \brief Returns a description of the system
-	*
-	* The system refers to the one used to build the KVIrc executable.
-	* \return QString
-	*/
-	extern KVILIB_API QString buildSystem();
-
-	/**
 	* \brief Returns the name part of the system
 	*
 	* The system name refers to the one used to build the KVIrc executable.
 	* \return QString
 	*/
 	extern KVILIB_API QString buildSystemName();
-
-	/**
-	* \brief Returns the version part of the system
-	*
-	* The system version refers to the one used to build the KVIrc executable.
-	* \return QString
-	*/
-	extern KVILIB_API QString buildSystemVersion();
 
 	/**
 	* \brief Returns a description of the CPU

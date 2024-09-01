@@ -33,20 +33,14 @@
 #cmakedefine COMPILE_IPV6_SUPPORT 1
 #cmakedefine COMPILE_PSEUDO_TRANSPARENCY 1
 #cmakedefine COMPILE_ENCHANT_SUPPORT 1
-// Do we use KDE at all?
 #cmakedefine COMPILE_KDE_SUPPORT 1
-// Using KDE4 ? Implies COMPILE_KDE_SUPPORT
-#cmakedefine COMPILE_KDE4_SUPPORT 1
-// Using KDE5 ? Implies COMPILE_KDE_SUPPORT
-#cmakedefine COMPILE_KDE5_SUPPORT 1
-#cmakedefine COMPILE_WEBKIT_SUPPORT 1
+#cmakedefine COMPILE_WEBENGINE_SUPPORT 1
 #cmakedefine COMPILE_DBUS_SUPPORT 1
 #cmakedefine COMPILE_ZLIB_SUPPORT 1
-#cmakedefine COMPILE_ENABLE_GTKSTYLE 1
 
 #cmakedefine COMPILE_PHONON_SUPPORT 1
-#cmakedefine COMPILE_ESD_SUPPORT 1
 #cmakedefine COMPILE_OSS_SUPPORT 1
+#cmakedefine COMPILE_QTMULTIMEDIA_SUPPORT 1
 #cmakedefine HAVE_LINUX_SOUNDCARD_H 1
 #cmakedefine HAVE_SYS_SOUNDCARD_H 1
 #cmakedefine HAVE_MACHINE_SOUNDCARD_H 1
@@ -75,10 +69,11 @@
 #define KVIRC_VERSION_RELEASE "${CMAKE_KVIRC_VERSION_RELEASE}"
 #define KVIRC_VERSION_BRANCH "${CMAKE_KVIRC_VERSION_BRANCH}"
 #define KVIRC_VERSION_CODENAME "${CMAKE_KVIRC_VERSION_CODENAME}"
+#define KVIRC_VERSION_MAJOR "${CMAKE_KVIRC_VERSION_MAJOR}"
 
 // KVIrc detects the modules directory on macs/win32 by itself
 // this seems to be used on linux only
-#if !(defined(Q_OS_MACX) || defined(MINGW) || defined(MSVC))
+#if !(defined(Q_OS_MACOS) || defined(MINGW) || defined(MSVC))
 #define KVIRC_RESOURCES_DIR "${CMAKE_KVIRC_RESOURCES_DIR}"
 #define KVIRC_MODULES_DIR "${CMAKE_KVIRC_MODULES_DIR}"
 #endif

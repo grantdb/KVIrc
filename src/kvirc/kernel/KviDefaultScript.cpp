@@ -41,7 +41,6 @@
 #include <QMessageBox>
 
 KviDefaultScriptManager * KviDefaultScriptManager::m_pSelf = nullptr;
-unsigned int KviDefaultScriptManager::m_uCount = 0;
 
 KviDefaultScriptManager::KviDefaultScriptManager()
     : QObject()
@@ -72,18 +71,18 @@ KviDefaultScriptManager::~KviDefaultScriptManager()
 
 void KviDefaultScriptManager::init()
 {
-	if((!m_pSelf) && (m_pSelf->count() == 0))
+	if(!m_pSelf)
 	{
 		m_pSelf = new KviDefaultScriptManager();
-		m_uCount++;
 	}
 }
 
 void KviDefaultScriptManager::done()
 {
-	m_uCount--;
-	if(m_pSelf->count() == 0)
+	if(m_pSelf) {
 		delete m_pSelf;
+		m_pSelf = nullptr;
+	}
 }
 
 bool KviDefaultScriptManager::isDefscriptUpToDate()
@@ -118,13 +117,13 @@ void KviDefaultScriptManager::restore()
 	// Check data
 	if(!compareVersions(szGlobal, &szError))
 	{
-		QMessageBox::warning(nullptr, __tr2qs("Restore Default - KVIrc"), szError, QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::warning(nullptr, __tr2qs("Restore Default - KVIrc"), szError);
 		return;
 	}
 
 	if(m_bNoNeedToRestore)
 	{
-		if(QMessageBox::warning(nullptr, __tr2qs("Restore Default - KVIrc"), szError, QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
+		if(QMessageBox::question(nullptr, __tr2qs("Restore Default - KVIrc"), szError) != QMessageBox::Yes)
 			return;
 	}
 

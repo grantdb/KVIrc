@@ -31,9 +31,7 @@
 #include "KviMessageBox.h"
 #include "KviBuildInfo.h"
 #ifdef COMPILE_DBUS_SUPPORT
-#ifndef COMPILE_KDE_SUPPORT // 'cause kde adds an interface itself
 #include "KviDbusAdaptor.h"
-#endif
 #endif
 #ifndef COMPILE_NO_IPC
 extern bool kvi_sendIpcMessage(const char * message); // KviIpcSentinel.cpp
@@ -43,11 +41,7 @@ extern bool kvi_sendIpcMessage(const char * message); // KviIpcSentinel.cpp
 #include <QMessageBox>
 
 #ifdef COMPILE_KDE_SUPPORT
-#ifdef COMPILE_KDE4_SUPPORT
-#include <KCmdLineArgs>
-#else
 #include <KLocalizedString>
-#endif
 #include <KAboutData>
 #endif
 
@@ -55,7 +49,7 @@ extern bool kvi_sendIpcMessage(const char * message); // KviIpcSentinel.cpp
 #define KVI_ARGS_RETCODE_ERROR 1
 #define KVI_ARGS_RETCODE_STOP 2
 
-typedef struct _ParseArgs
+struct ParseArgs
 {
 	int argc;
 	char ** argv;
@@ -66,7 +60,7 @@ typedef struct _ParseArgs
 	bool bExecuteCommandAndClose;
 	QString szExecCommand;
 	QString szExecRemoteCommand;
-} ParseArgs;
+};
 
 int parseArgs(ParseArgs * a)
 {
@@ -361,26 +355,6 @@ int main(int argc, char ** argv)
 	}
 
 #ifdef COMPILE_KDE_SUPPORT
-#ifdef COMPILE_KDE4_SUPPORT
-	// KDE4
-	KAboutData * pAboutData = new KAboutData( // FIXME: this is never deleted ? Should it be ?
-	    "kvirc",                              // internal program name
-	    "kvirc",                              // message catalogue name
-	    ki18n("KVIrc"),                       // user-visible program name
-	    KVI_VERSION,                          // program version
-	    ki18n("Visual IRC Client"),           // description
-	    KAboutData::License_GPL,              // license
-	    ki18n("(c) 1998-2016 The KVIrc Development Team"),
-	    ki18n("???"),                           // *some other text* ????
-	    "http://www.kvirc.net",                 // homepage
-	    "https://github.com/kvirc/KVIrc/issues" // bug address
-	    );
-
-	//fake argc/argv initialization: kde will use argv[0] as out appName in some dialogs
-	// (eg: kdebase/workspace/kwin/killer/killer.cpp)
-	KCmdLineArgs::init(1, &argv[0], pAboutData);
-#else  //!COMPILE_KDE4_SUPPORT
-	// KDE5
 	KAboutData * pAboutData = new KAboutData(  // FIXME: this is never deleted ? Should it be ?
 	    "kvirc",                               // internal program name
 	    "KVIrc",                               // user-visible program name
@@ -392,7 +366,6 @@ int main(int argc, char ** argv)
 	    "http://www.kvirc.net",                 // homepage
 	    "https://github.com/kvirc/KVIrc/issues" // bug address
 	    );
-#endif //!COMPILE_KDE4_SUPPORT
 #endif
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
@@ -402,19 +375,8 @@ int main(int argc, char ** argv)
 	KviApplication * pTheApp = new KviApplication(argc, argv);
 
 #ifdef COMPILE_KDE_SUPPORT
-#ifdef COMPILE_KDE4_SUPPORT
-	pTheApp->setAboutData(pAboutData);
-#else
 	KAboutData::setApplicationData(*pAboutData);
 	delete pAboutData;
-#endif
-#endif
-
-#ifdef COMPILE_DBUS_SUPPORT
-#ifndef COMPILE_KDE_SUPPORT
-	new KviDbusAdaptor(pTheApp); // FIXME: shouldn't this be deleted by someone ?
-	QDBusConnection::sessionBus().registerObject("/MainApplication", pTheApp);
-#endif
 #endif
 
 	QString szRemoteCommand = a.szExecCommand;
@@ -460,7 +422,7 @@ int main(int argc, char ** argv)
 				KviCString szTmp(KviCString::Format, "Another KVIrc session is already running on this display and with this user ID.\nUse %s -f if you want to force a new session.", argv[0]);
 				if(a.bShowPopup)
 				{
-					QMessageBox::information(nullptr, "Duplicate Session - KVIrc", szTmp.ptr(), QMessageBox::Ok);
+					QMessageBox::information(nullptr, "Duplicate Session - KVIrc", szTmp.ptr());
 				}
 				else
 				{
@@ -477,6 +439,15 @@ int main(int argc, char ** argv)
 			return 0;
 		}
 	}
+#endif
+
+#ifdef COMPILE_DBUS_SUPPORT
+	/*
+	 * D-Bus initialization must happen after IPC session handling
+	 * The object itsef is deleted automatically when pTheApp gets destroyed
+	 */
+	KviDbusAdaptor * pDbusAdaptor = new KviDbusAdaptor(pTheApp);
+	pDbusAdaptor->registerToSessionBus();
 #endif
 
 	pTheApp->m_bCreateConfig = a.createFile;

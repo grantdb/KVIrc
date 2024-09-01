@@ -38,7 +38,6 @@
 #include "KviWindowListBase.h"
 #include "KviMainWindow.h"
 #include "KviConfigurationFile.h"
-#include "KviMaskEditor.h"
 #include "KviControlCodes.h"
 #include "KviModeEditor.h"
 #include "KviApplication.h"
@@ -59,7 +58,7 @@
 #endif //COMPILE_CRYPT_SUPPORT
 
 #include <set>
-#include <time.h>
+#include <ctime>
 
 #include <QDate>
 #include <QByteArray>
@@ -89,16 +88,17 @@ KviChannelWindow::KviChannelWindow(KviConsoleWindow * lpConsole, const QString &
 	// Button box
 	m_pButtonBox = new KviTalHBox(this);
 	m_pButtonBox->setSpacing(0);
-	m_pButtonBox->setMargin(0);
+	m_pButtonBox->setContentsMargins(0, 0, 0, 0);
 
 	m_pTopSplitter = new KviTalSplitter(Qt::Horizontal, m_pButtonBox);
 	m_pTopSplitter->setChildrenCollapsible(false);
 
 	m_pButtonContainer = new KviTalHBox(m_pButtonBox);
 	m_pButtonContainer->setSpacing(0);
-	m_pButtonContainer->setMargin(0);
+	m_pButtonContainer->setContentsMargins(0, 0, 0, 0);
 	// Topic widget on the left
 	m_pTopicWidget = new KviTopicWidget(m_pTopSplitter, this, "topic_widget");
+	m_pTopSplitter->setStretchFactor(0, 1);
 
 	connect(m_pTopicWidget, SIGNAL(topicSelected(const QString &)),
 	    this, SLOT(topicSelected(const QString &)));
@@ -245,7 +245,7 @@ KviChannelWindow::KviChannelWindow(KviConsoleWindow * lpConsole, const QString &
 
 	applyOptions();
 	m_joinTime = QDateTime::currentDateTime();
-	m_tLastReceivedWhoReply = (kvi_time_t)m_joinTime.toTime_t();
+	m_tLastReceivedWhoReply = (kvi_time_t)m_joinTime.toSecsSinceEpoch();
 }
 
 KviChannelWindow::~KviChannelWindow()
@@ -311,7 +311,7 @@ void KviChannelWindow::getBaseLogFileName(QString & szBuffer)
 		szBuffer = szChan;
 		szBuffer.append(".");
 		if(context())
-			szBuffer.append(context()->id());
+			szBuffer.append(QString::number(context()->id()));
 		else
 			szBuffer.append("0");
 	}
@@ -398,7 +398,7 @@ void KviChannelWindow::loadProperties(KviConfigurationFile * pCfg)
 	KviWindow::loadProperties(pCfg);
 	if(m_pUserListView)
 	{
-		bool bHidden = pCfg->readBoolEntry("UserListHidden", 0);
+		bool bHidden = pCfg->readBoolEntry("UserListHidden", false);
 		m_pUserListView->setHidden(bHidden);
 		m_pListViewButton->setChecked(!bHidden);
 		if(!bHidden)
@@ -1048,12 +1048,12 @@ void KviChannelWindow::getWindowListTipText(QString & szBuffer)
 	{
 		if((cas.lTalkingUsers.count() < 3) && (cas.lWereTalkingUsers.count() > 0))
 		{
-			szBuffer += "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+			szBuffer += R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 			getTalkingUsersStats(szBuffer, cas.lWereTalkingUsers, true);
 			szBuffer += "</font>";
 			szBuffer += szRowEnd;
 		}
-		szBuffer += "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+		szBuffer += R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 		getTalkingUsersStats(szBuffer, cas.lTalkingUsers, false);
 		szBuffer += "</font>";
 		szBuffer += szRowEnd;
@@ -1062,14 +1062,14 @@ void KviChannelWindow::getWindowListTipText(QString & szBuffer)
 	{
 		if(cas.lWereTalkingUsers.count() > 0)
 		{
-			szBuffer += "<tr><td bgcolor=\"#E0E0E0\"><font color=\"#000000\">";
+			szBuffer += R"(<tr><td bgcolor="#E0E0E0"><font color="#000000">)";
 			getTalkingUsersStats(szBuffer, cas.lWereTalkingUsers, true);
 			szBuffer += "</font>";
 			szBuffer += szRowEnd;
 		}
 	}
 
-	szBuffer += "<tr><td bgcolor=\"#E0E0E0\"><b><font color=\"#000000\">";
+	szBuffer += R"(<tr><td bgcolor="#E0E0E0"><b><font color="#000000">)";
 
 	if(cas.dActionsPerMinute < 0.1)
 		szBuffer += __tr2qs("No activity");
@@ -1091,7 +1091,7 @@ void KviChannelWindow::getWindowListTipText(QString & szBuffer)
 	if(cas.dActionsPerMinute >= 0.1)
 	{
 		QString szNum;
-		szNum.sprintf(" [%u%% ", cas.uHotActionPercent);
+		szNum = QString::asprintf(" [%u%% ", cas.uHotActionPercent);
 		szBuffer += szNum;
 		szBuffer += __tr2qs("human");
 		szBuffer += "]";
@@ -1254,7 +1254,7 @@ void KviChannelWindow::ownMessage(const QString & szBuffer, bool bUserFeedback)
 
 			// first part (optimization): quickly find an high index that is _surely_lesser_
 			// than the correct one
-			while(1)
+			while(true)
 			{
 				iC++;
 				szTmp = pEncoder->fromUnicode(szTmpBuffer.left(iPos));
@@ -1270,7 +1270,7 @@ void KviChannelWindow::ownMessage(const QString & szBuffer, bool bUserFeedback)
 
 			// now, do it the simple way: increment our index until we perfectly fit into the
 			// available space
-			while(1)
+			while(true)
 			{
 				iC++;
 
@@ -1363,7 +1363,7 @@ void KviChannelWindow::ownAction(const QString & szBuffer)
 #ifdef COMPILE_CRYPT_SUPPORT
 	if(cryptSessionInfo() && cryptSessionInfo()->m_bDoEncrypt)
 	{
-		if(szTmpBuffer[0] != KviControlCodes::CryptEscape)
+		if(szTmpBuffer[0].unicode() != KviControlCodes::CryptEscape)
 		{
 			KviCString szEncrypted;
 			cryptSessionInfo()->m_pEngine->setMaxEncryptLen(iMaxMsgLen);
@@ -1438,7 +1438,7 @@ void KviChannelWindow::ownAction(const QString & szBuffer)
 
 			// first part (optimization): quickly find an high index that is _surely_lesser_
 			// than the correct one
-			while(1)
+			while(true)
 			{
 				iC++;
 				szTmp = pEncoder->fromUnicode(szTmpBuffer.left(iPos));
@@ -1453,7 +1453,7 @@ void KviChannelWindow::ownAction(const QString & szBuffer)
 			//printf("Multi message: %d optimization cyles", iC);
 			// now, do it the simple way: increment our index until we perfectly fit into the
 			// available space
-			while(1)
+			while(true)
 			{
 				iC++;
 
@@ -2092,7 +2092,7 @@ void KviChannelWindow::preprocessMessage(QString & szMessage)
 	if(szMessage.contains(szNonStandardLinkPrefix))
 		return; // contains a non standard link that may contain spaces, do not break it.
 
-	QStringList strings = szMessage.split(" ", QString::KeepEmptyParts);
+	QStringList strings = szMessage.split(" ", Qt::KeepEmptyParts);
 	for(auto & it : strings)
 	{
 		if(it.contains('\r'))

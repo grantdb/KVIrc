@@ -128,8 +128,8 @@
 #define KVIRC_API_TYPEDEF
 
 // note: cmake defines "APPLE" but we're not using it since it includes legacy mac os version (pre-X)
-// we use qt's Q_OS_MACX instead
-#ifdef Q_OS_MACX
+// we use qt's Q_OS_MACOS instead
+#ifdef Q_OS_MACOS
 /**
 		* \def COMPILE_ON_MAC This flag will enable specific code for mac compilation
 		*/
@@ -194,8 +194,12 @@
 #endif
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
+#ifndef UNICODE
 #define UNICODE
+#endif
+#ifndef _UNICODE
 #define _UNICODE
+#endif
 #endif
 
 #endif //_KVI_SETTINGS_H_

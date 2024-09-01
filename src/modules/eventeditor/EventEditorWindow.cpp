@@ -37,6 +37,7 @@
 #include "KviCommandFormatter.h"
 #include "kvi_fileextensions.h"
 #include "KviQString.h"
+#include "KviRegExp.h"
 #include "KviKvsEventManager.h"
 #include "KviTalVBox.h"
 #include "KviTalHBox.h"
@@ -48,11 +49,14 @@
 #include <QPushButton>
 #include <QMouseEvent>
 #include <QMenu>
+#include <utility>
 
 extern EventEditorWindow * g_pEventEditorWindow;
 
-EventEditorEventTreeWidgetItem::EventEditorEventTreeWidgetItem(QTreeWidget * par, unsigned int uEvIdx, const QString & name, const QString & params)
-    : QTreeWidgetItem(par), m_uEventIdx(uEvIdx), m_szParams(params)
+EventEditorEventTreeWidgetItem::EventEditorEventTreeWidgetItem(QTreeWidget * par, unsigned int uEvIdx, const QString & name, QString params)
+    : QTreeWidgetItem(par)
+    , m_uEventIdx(uEvIdx)
+    , m_szParams(std::move(params))
 {
 	setName(name);
 }
@@ -63,8 +67,9 @@ void EventEditorEventTreeWidgetItem::setName(const QString & szName)
 	setText(0, m_szName);
 }
 
-EventEditorHandlerTreeWidgetItem::EventEditorHandlerTreeWidgetItem(QTreeWidgetItem * par, const QString & name, const QString & buffer, bool bEnabled)
-    : QTreeWidgetItem(par), m_szBuffer(buffer)
+EventEditorHandlerTreeWidgetItem::EventEditorHandlerTreeWidgetItem(QTreeWidgetItem * par, const QString & name, QString buffer, bool bEnabled)
+    : QTreeWidgetItem(par)
+    , m_szBuffer(std::move(buffer))
 {
 	m_cPos = 0;
 	setEnabled(bEnabled); //this updates the icon too
@@ -97,7 +102,7 @@ EventEditor::EventEditor(QWidget * par)
 
 	KviTalVBox * vbox = new KviTalVBox(spl);
 	vbox->setSpacing(0);
-	vbox->setMargin(0);
+	vbox->setContentsMargins(0, 0, 0, 0);
 
 	m_pTreeWidget = new EventEditorTreeWidget(vbox);
 
@@ -109,7 +114,7 @@ EventEditor::EventEditor(QWidget * par)
 	spl->setStretchFactor(2, 80);
 
 	box->setSpacing(0);
-	box->setMargin(0);
+	box->setContentsMargins(0, 0, 0, 0);
 
 	KviTalHBox * hbox = new KviTalHBox(box);
 	hbox->setContentsMargins(10, 0, 10, 0);
@@ -123,7 +128,7 @@ EventEditor::EventEditor(QWidget * par)
 	m_pNameEditor->setText(__tr2qs_ctx("No item selected", "editor"));
 	m_pNameEditor->setToolTip(__tr2qs_ctx("Edit the event handler name.", "editor"));
 	m_pNameEditor->setEnabled(false);
-	QRegExpValidator * pValidator = new QRegExpValidator(QRegExp(KVI_KVS_EVENT_HANDLER_NAME_REG_EXP), this);
+	QRegularExpressionValidator * pValidator = new QRegularExpressionValidator(KviRegExp(KVI_KVS_EVENT_HANDLER_NAME_REG_EXP), this);
 	m_pNameEditor->setValidator(pValidator);
 	m_pNameEditor->setEnabled(false);
 
@@ -510,7 +515,7 @@ void EventEditor::exportCurrentHandler()
 
 	if(!KviFileUtils::writeFile(szFile, szOut))
 	{
-		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the events file.", "editor"), __tr2qs_ctx("&OK", "editor"));
+		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the events file.", "editor"));
 	}
 }
 
@@ -550,7 +555,7 @@ void EventEditor::exportAllEvents()
 
 	if(!KviFileUtils::writeFile(szFile, out))
 	{
-		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed", "editor"), __tr2qs_ctx("Unable to write to the events file.", "editor"), __tr2qs_ctx("OK", "editor"));
+		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed", "editor"), __tr2qs_ctx("Unable to write to the events file.", "editor"));
 	}
 }
 

@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: KVIrc 4.9.3\n"
+"Project-Id-Version: KVIrc 5.1.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-09 14:46+0200\n"
+"POT-Creation-Date: 2023-12-06 22:34+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1060,6 +1060,6 @@ msgstr ""
 msgid "Help"
 msgstr ""
 
-#: data/defscript/toolbars.kvs:35
+#: data/defscript/toolbars.kvs:31
 msgid "Scripting"
 msgstr ""

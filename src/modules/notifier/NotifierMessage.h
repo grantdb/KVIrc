@@ -52,7 +52,7 @@ public:
 	* \param szText const reference to message text in irc format
 	* \return NotifierMessage
 	*/
-	NotifierMessage(QPixmap * pPixmap, const QString & szText);
+	NotifierMessage(QPixmap * pPixmap, QString szText);
 	/**
 	* \brief Destroys the NotifierMessage object
 	*/
@@ -75,12 +75,12 @@ public:
 	* \brief Returns the original irc message
 	* \return const QString &
 	*/
-	inline const QString & text() const { return m_szText; }
+	const QString & text() const { return m_szText; }
 	/**
 	* \brief Returns the message icon
 	* \return QPixmap *
 	*/
-	inline QPixmap * pixmap() const { return m_pPixmap; }
+	QPixmap * pixmap() const { return m_pPixmap; }
 	/**
 	* \brief Updates the aspect of this message
 	* \return void

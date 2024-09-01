@@ -36,9 +36,9 @@
 #include "KviOptions.h"
 #include "KviUserInput.h"
 #include "KviThemedLineEdit.h"
+#include "KviRegExp.h"
 
 #include <QApplication>
-#include <QDesktopWidget>
 #include <QEvent>
 #include <QFontMetrics>
 #include <QImage>
@@ -46,7 +46,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPen>
-#include <QRegExp>
+#include <QScreen>
 #include <QToolTip>
 
 extern NotifierWindow * g_pNotifierWindow;
@@ -75,8 +75,7 @@ NotifierWindow::NotifierWindow()
 	hide();
 
 	// Positioning the notifier bottom-right
-	QDesktopWidget * pDesktop = QApplication::desktop();
-	QRect r = pDesktop->availableGeometry(pDesktop->primaryScreen());
+	QRect r = g_pApp->primaryScreen()->availableGeometry();
 
 	m_wndRect.setRect(
 	    r.x() + r.width() - (WDG_MIN_WIDTH + SPACING),
@@ -142,7 +141,7 @@ void NotifierWindow::addMessage(KviWindow * pWnd, const QString & szImageId, con
 {
 	QPixmap * pIcon = nullptr;
 	QString szMessage = szText;
-	szMessage.replace(QRegExp("\r([^\r])*\r([^\r])+\r"), "\\2");
+	szMessage.replace(KviRegExp("\r([^\r])*\r([^\r])+\r"), "\\2");
 	if(!szImageId.isEmpty())
 		pIcon = g_pIconManager->getImage(szImageId);
 
@@ -225,13 +224,14 @@ void NotifierWindow::stopAutoHideTimer()
 // FIXME: The code for detecting fullscreen window does NOT take into account multi-screen setups.
 //        We also lack the code for MacOSX and Qt-only-X11 compilation.
 
-#if COMPILE_KDE_SUPPORT
-#include <kwindowsystem.h>
+#ifdef COMPILE_KDE_SUPPORT
+#include <KWindowInfo>
+#include <KX11Extras>
 
 static bool active_window_is_full_screen()
 {
-	WId activeId = KWindowSystem::activeWindow();
-	KWindowInfo wi = KWindowSystem::windowInfo(activeId, NET::WMState);
+	WId activeId = KX11Extras::activeWindow();
+	KWindowInfo wi = KWindowInfo(activeId, NET::WMState);
 	return (wi.valid() && wi.hasState(NET::FullScreen));
 }
 #else // COMPILE_KDE_SUPPORT
@@ -864,7 +864,7 @@ void NotifierWindow::resize(QPoint, bool)
 	setGeometry(m_wndRect);
 }
 
-inline void NotifierWindow::setCursor(int iCur)
+void NotifierWindow::setCursor(int iCur)
 {
 	if(m_cursor.shape() != iCur)
 	{
@@ -880,7 +880,11 @@ inline void NotifierWindow::setCursor(int iCur)
 	}
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 void NotifierWindow::enterEvent(QEvent *)
+#else
+void NotifierWindow::enterEvent(QEnterEvent *)
+#endif
 {
 	if(!m_pShowHideTimer)
 	{
@@ -1083,7 +1087,7 @@ void NotifierWindow::returnPressed()
 
 	addMessage(pTab->wnd(), szTmp.ptr(), szHtml, 0);
 	m_pLineEdit->setText("");
-	KviUserInput::parse(szTxt, pTab->wnd(), QString(), 1);
+	KviUserInput::parse(szTxt, pTab->wnd(), QString(), true);
 }
 
 void NotifierWindow::progressUpdate()

@@ -54,7 +54,7 @@ class KVIRC_API KviKvsObject : public QObject
 	Q_OBJECT
 public:
 	KviKvsObject(KviKvsObjectClass * pClass, KviKvsObject * pParent, const QString & szName);
-	virtual ~KviKvsObject();
+	~KviKvsObject();
 
 protected:
 	// main data
@@ -109,7 +109,7 @@ public:
 	// this is intended to be called from other function calls (the parameters are copied from pOuterCall)
 	// since we should NEVER emit totally spontaneous signals: all of them
 	// should be generated inside object functions (either from scripting or by core calls)
-	int emitSignal(const QString & sigName, KviKvsObjectFunctionCall * pOuterCall, KviKvsVariantList * pParams = 0);
+	int emitSignal(const QString & sigName, KviKvsObjectFunctionCall * pOuterCall, KviKvsVariantList * pParams = nullptr);
 
 	void setSignalSender(kvs_hobject_t hObject) { m_hSignalSender = hObject; }
 	kvs_hobject_t signalSender() { return m_hSignalSender; }
@@ -144,9 +144,9 @@ public:
 	    KviKvsVariant * pRetVal,         // the return value
 	    KviKvsVariantList * pParams);    // the parameters for the call
 	// a nice and simple wrapper: it accepts a parameter list only (eventually 0)
-	bool callFunction(KviKvsObject * pCaller, const QString & fncName, KviKvsVariantList * pParams = 0);
+	bool callFunction(KviKvsObject * pCaller, const QString & fncName, KviKvsVariantList * pParams = nullptr);
 	// this one gets a non null ret val too
-	bool callFunction(KviKvsObject * pCaller, const QString & fncName, KviKvsVariant * pRetVal, KviKvsVariantList * pParams = 0);
+	bool callFunction(KviKvsObject * pCaller, const QString & fncName, KviKvsVariant * pRetVal, KviKvsVariantList * pParams = nullptr);
 
 	KviKvsObject * findChild(const QString & szClass, const QString & szName);
 	void killAllChildrenWithClass(KviKvsObjectClass * cl);
@@ -160,8 +160,8 @@ protected:
 	void registerChild(KviKvsObject * c);
 	void unregisterChild(KviKvsObject * c);
 
-	virtual bool eventFilter(QObject * o, QEvent * e); //necessary ?
-	virtual void timerEvent(QTimerEvent * e);
+	bool eventFilter(QObject * o, QEvent * e) override; //necessary ?
+	void timerEvent(QTimerEvent * e) override;
 
 protected:
 	bool function_name(KviKvsObjectFunctionCall * c);

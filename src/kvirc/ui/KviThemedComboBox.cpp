@@ -75,14 +75,14 @@ void KviThemedComboBox::applyOptions()
 		QPalette pal = palette();
 		pal.setBrush(QPalette::Base, bIsTrasparent ? Qt::transparent : KVI_OPTION_COLOR(KviOption_colorLabelBackground));
 		//qcombobox forces QPalette::Text as its forecolor
-		pal.setBrush(QPalette::Text, bIsTrasparent ? KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()) : KVI_OPTION_COLOR(KviOption_colorLabelForeground));
+		pal.setBrush(QPalette::Text, bIsTrasparent ? getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()) : KVI_OPTION_COLOR(KviOption_colorLabelForeground));
 		setPalette(pal);
 #if 0
 	} else {
 		//QString szStyle = QString("QComboBox { background: %1; color: %2; font-family: %3; font-size: %4pt; font-weight: %5; font-style: %6;}")
 		QString szStyle = QString("QComboBox { background: %1; color: %2; font-family: %3; font-size: %4pt; font-weight: %5; font-style: %6;}")
 		                      .arg(bIsTrasparent ? "transparent" : KVI_OPTION_COLOR(KviOption_colorLabelBackground).name())
-		                      .arg(bIsTrasparent ? KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()).name() : KVI_OPTION_COLOR(KviOption_colorLabelForeground).name())
+		                      .arg(bIsTrasparent ? getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()).name() : KVI_OPTION_COLOR(KviOption_colorLabelForeground).name())
 		                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).family())
 		                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).pointSize())
 		                      .arg(KVI_OPTION_FONT(KviOption_fontLabel).weight() == QFont::Bold ? "bold" : "normal")
@@ -116,12 +116,11 @@ void KviThemedComboBox::paintEvent(QPaintEvent * event)
 		style()->drawPrimitive(QStyle::PE_FrameLineEdit, &option, p, this);
 
 		r = style()->subElementRect(QStyle::SE_LineEditContents, &option, le);
-		int left, right, top, bottom;
-		le->getTextMargins(&left, &top, &right, &bottom);
-		r.setX(r.x() + left);
-		r.setY(r.y() + top);
-		r.setRight(r.right() - right);
-		r.setBottom(r.bottom() - bottom);
+		QMargins m = le->textMargins();
+		r.setX(r.x() + m.left());
+		r.setY(r.y() + m.top());
+		r.setRight(r.right() - m.right());
+		r.setBottom(r.bottom() - m.bottom());
 		p->setClipRect(r);
 	} // else not editable
 

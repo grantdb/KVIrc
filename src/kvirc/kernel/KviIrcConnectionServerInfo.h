@@ -40,7 +40,7 @@ protected:
 	KviIrcConnectionServerInfo * m_pParent;
 
 public:
-	KviBasicIrcServerInfo(KviIrcConnectionServerInfo * pParent = nullptr, const QString & version = KviQString::Empty);
+	KviBasicIrcServerInfo(KviIrcConnectionServerInfo * pParent = nullptr, QString version = KviQString::Empty);
 	virtual ~KviBasicIrcServerInfo();
 
 public:
@@ -104,6 +104,15 @@ public:
 	const QString & getUserModeDescription(QChar mode) const override;
 	QChar getUserModeRequirement(QChar mode) const override;
 	const char * getSoftware() const override { return "Ircd-seven"; }
+};
+
+class KVIRC_API KviIrcdSolanumIrcServerInfo : public KviIrcdSevenIrcServerInfo
+{
+	// libera
+public:
+	KviIrcdSolanumIrcServerInfo(KviIrcConnectionServerInfo * pParent = nullptr, const QString & version = KviQString::Empty)
+	    : KviIrcdSevenIrcServerInfo(pParent, version) {}
+	const char * getSoftware() const override { return "Solanum"; }
 };
 
 class KVIRC_API KviPlexusIrcServerInfo : public KviHybridServerInfo

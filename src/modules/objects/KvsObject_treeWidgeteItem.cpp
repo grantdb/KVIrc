@@ -40,7 +40,7 @@ const int item_flags[] = {
 	Qt::ItemIsDropEnabled,
 	Qt::ItemIsUserCheckable,
 	Qt::ItemIsEnabled,
-	Qt::ItemIsTristate
+	Qt::ItemIsUserTristate
 };
 
 const char * const itemflags_tbl[] = {
@@ -345,7 +345,7 @@ KVSO_CLASS_FUNCTION(treeWidgetItem, isChecked)
 		c->returnValue()->setBoolean(false);
 		return true;
 	}
-	c->returnValue()->setBoolean(((QTreeWidgetItem *)m_pTreeWidgetItem)->checkState(0) == Qt::Checked ? 1 : 0);
+	c->returnValue()->setBoolean(((QTreeWidgetItem *)m_pTreeWidgetItem)->checkState(0) == Qt::Checked ? true : false);
 	return true;
 }
 

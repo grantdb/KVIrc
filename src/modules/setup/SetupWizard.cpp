@@ -37,6 +37,7 @@ bool g_bFoundMirc;
 #include "KviOptions.h"
 #include "KviConfigurationFile.h"
 #include "KviTalHBox.h"
+#include "KviRegExp.h"
 
 #include <QTextEdit>
 #include <QMessageBox>
@@ -45,7 +46,7 @@ bool g_bFoundMirc;
 #include <QValidator>
 #include <QTextCodec>
 #include <QLayout>
-#include <QDesktopWidget>
+#include <QScreen>
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 #include <winnls.h>  // for MultiByteToWideChar
@@ -91,14 +92,14 @@ SetupPage::SetupPage(SetupWizard * w)
 	m_pPixmapLabel->setPixmap(*(w->m_pLabelPixmap));
 	m_pPixmapLabel->setFixedSize(w->m_pLabelPixmap->size());
 	m_pPixmapLabel->setFrameStyle(QFrame::Sunken | QFrame::StyledPanel);
-	m_pPixmapLabel->setMargin(0);
+	m_pPixmapLabel->setContentsMargins(0, 0, 0, 0);
 
 	g->setSpacing(8);
-	g->setMargin(0);
+	g->setContentsMargins(0, 0, 0, 0);
 
 	m_pVBox = new KviTalVBox(this);
 	m_pVBox->setSpacing(4);
-	m_pVBox->setMargin(0);
+	m_pVBox->setContentsMargins(0, 0, 0, 0);
 	//m_pVBox->setSizePolicy(QSizePolicy(QSizePolicy::Expanding));
 	//m_pVBox->setBackgroundColor(QColor(0,80,0));
 	//m_pVBox->setMaximumHeight(450);
@@ -117,7 +118,7 @@ SetupPage::SetupPage(SetupWizard * w)
 	l->setFrameStyle(QFrame::Sunken | QFrame::StyledPanel);
 	l->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 	l->setAutoFillBackground(true);
-	l->setMargin(0);
+	l->setContentsMargins(0, 0, 0, 0);
 
 	m_pTextLabel = new QLabel(m_pVBox);
 	m_pTextLabel->setWordWrap(true);
@@ -140,6 +141,9 @@ SetupWizard::SetupWizard()
 
 	QString szImagePath;
 	g_pApp->getGlobalKvircDirectory(szImagePath, KviApplication::Pics, "kvi_setup_label.png");
+
+	// set name of the app desktop file; used by wayland to load the window icon
+	QGuiApplication::setDesktopFileName("net.kvirc.KVIrc" KVIRC_VERSION_MAJOR);
 
 	m_pLabelPixmap = new QPixmap(szImagePath);
 	if(m_pLabelPixmap->isNull())
@@ -323,10 +327,10 @@ SetupWizard::SetupWizard()
 
 	m_pNickSelector = new KviStringSelector(gbox, __tr2qs("Nickname:"), &(KVI_OPTION_STRING(KviOption_stringNickname1)), true);
 	m_pNickSelector->setMinimumLabelWidth(120);
-	m_pNickSelector->setMargin(0);
+	m_pNickSelector->setContentsMargins(0, 0, 0, 0);
 	QObject::connect(m_pNickSelector->lineEdit(), SIGNAL(textChanged(const QString &)), this, SLOT(nickSelectorTextChanged(const QString &)));
 
-	QValidator * v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*"), gbox);
+	QValidator * v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*"), gbox);
 	m_pNickSelector->setValidator(v);
 
 	QString szOptionalCtcpUserInfo = __tr2qs("This field is optional and will appear as part of the CTCP USERINFO reply.");
@@ -336,11 +340,11 @@ SetupWizard::SetupWizard()
 
 	m_pRealNameSelector = new KviStringSelector(gbox, __tr2qs("Real name:"), &(KVI_OPTION_STRING(KviOption_stringRealname)), true);
 	m_pRealNameSelector->setMinimumLabelWidth(120);
-	m_pRealNameSelector->setMargin(0);
+	m_pRealNameSelector->setContentsMargins(0, 0, 0, 0);
 
 	KviTalHBox * hb = new KviTalHBox(gbox);
 	hb->setSpacing(4);
-	hb->setMargin(0);
+	hb->setContentsMargins(0, 0, 0, 0);
 
 	l = new QLabel(__tr2qs("Age:"), hb);
 	l->setMinimumWidth(120);
@@ -368,7 +372,7 @@ SetupWizard::SetupWizard()
 
 	hb = new KviTalHBox(gbox);
 	hb->setSpacing(4);
-	hb->setMargin(0);
+	hb->setContentsMargins(0, 0, 0, 0);
 
 	l = new QLabel(__tr2qs("Gender:"), hb);
 	l->setMinimumWidth(120);
@@ -390,11 +394,11 @@ SetupWizard::SetupWizard()
 
 	m_pLocationSelector = new KviStringSelector(gbox, __tr2qs("Location:"), &(KVI_OPTION_STRING(KviOption_stringCtcpUserInfoLocation)), true);
 	m_pLocationSelector->setMinimumLabelWidth(120);
-	m_pLocationSelector->setMargin(0);
+	m_pLocationSelector->setContentsMargins(0, 0, 0, 0);
 
 	m_pLanguagesSelector = new KviStringSelector(gbox, __tr2qs("Languages:"), &(KVI_OPTION_STRING(KviOption_stringCtcpUserInfoLanguages)), true);
 	m_pLanguagesSelector->setMinimumLabelWidth(120);
-	m_pLanguagesSelector->setMargin(0);
+	m_pLanguagesSelector->setContentsMargins(0, 0, 0, 0);
 
 	addPage(m_pIdentity, __tr2qs("Identity"));
 
@@ -434,7 +438,7 @@ SetupWizard::SetupWizard()
 	pPixmapLabelHiRes->setPixmap(*pHiResPixmap);
 	pPixmapLabelHiRes->setFixedSize(pHiResPixmap->size());
 	pPixmapLabelHiRes->setFrameStyle(QFrame::Sunken | QFrame::StyledPanel);
-	pPixmapLabelHiRes->setMargin(0);
+	pPixmapLabelHiRes->setContentsMargins(0, 0, 0, 0);
 	pThemeGrid->addWidget(pPixmapLabelHiRes, 1, 1);
 
 	m_pThemeHiRes = new QRadioButton(__tr2qs("&Fancy Theme"), m_pThemeButtonGroup);
@@ -453,7 +457,7 @@ SetupWizard::SetupWizard()
 	pPixmapLabelLowRes->setPixmap(*pLowResPixmap);
 	pPixmapLabelLowRes->setFixedSize(pLowResPixmap->size());
 	pPixmapLabelLowRes->setFrameStyle(QFrame::Sunken | QFrame::StyledPanel);
-	pPixmapLabelLowRes->setMargin(0);
+	pPixmapLabelLowRes->setContentsMargins(0, 0, 0, 0);
 	pThemeGrid->addWidget(pPixmapLabelLowRes, 1, 2);
 
 	m_pThemeLoRes = new QRadioButton(__tr2qs("&Minimalist Theme"), m_pThemeButtonGroup);
@@ -608,8 +612,7 @@ SetupWizard::~SetupWizard()
 
 void SetupWizard::showEvent(QShowEvent * e)
 {
-	int primary_screen = g_pApp->desktop()->primaryScreen();
-	QRect r = g_pApp->desktop()->screenGeometry(primary_screen);
+	QRect r = g_pApp->primaryScreen()->availableGeometry();
 
 	int w = r.width();
 	int h = r.height();
@@ -734,13 +737,8 @@ void SetupWizard::chooseOldDataPath()
 		        this,
 		        __tr2qs("Confirm Setting Configuration Folder - KVIrc Setup"),
 		        __tr2qs("The folder %1 doesn't seem to be a valid KVIrc settings folder. Do you want to use it anyway?")
-		            .arg(szBuffer),
-		        __tr2qs("&Yes"),
-		        __tr2qs("&No"),
-		        QString(),
-		        0,
-		        1)
-		    == 0)
+		            .arg(szBuffer))
+		    == QMessageBox::Yes)
 			m_pOldDataPathEdit->setText(szBuffer);
 	}
 	else
@@ -806,7 +804,7 @@ void SetupWizard::makeLink()
 	       0, KEY_QUERY_VALUE, &hCU)
 	    == ERROR_SUCCESS)
 	{
-		RegQueryValueEx(hCU, TEXT("Desktop"), NULL, &lpType,
+		RegQueryValueEx(hCU, TEXT("Desktop"), nullptr, &lpType,
 		    (unsigned char *)&szLink, &ulSize);
 		RegCloseKey(hCU);
 	}
@@ -819,13 +817,13 @@ void SetupWizard::makeLink()
 	szKvircExec.append("\\kvirc.exe");
 
 	// Trigger a horrible machinery
-	CoInitialize(NULL); // we need COM+OLE
+	CoInitialize(nullptr); // we need COM+OLE
 
 	// Fiddle with an obscure shell interface
 	IShellLink * psl;
 
 	// Get a pointer to the IShellLink interface: this is kinda ugly :)
-	if(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
+	if(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
 	       IID_IShellLink, (void **)&psl)
 	    == S_OK)
 	{
@@ -940,9 +938,8 @@ void SetupWizard::setUrlHandlers()
 
 void SetupWizard::reject()
 {
-	if(QMessageBox::warning(this, __tr2qs("Confirm Setup Abort - KVIrc Setup"),
-	       __tr2qs("You have chosen to abort the setup.<br>KVIrc can't run until you complete this procedure.<br><br>Do you really wish to abort?"),
-	       QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape)
+	if(QMessageBox::question(this, __tr2qs("Confirm Setup Abort - KVIrc Setup"),
+	       __tr2qs("You have chosen to abort the setup.<br>KVIrc can't run until you complete this procedure.<br><br>Do you really wish to abort?"))
 	    != QMessageBox::Yes)
 		return;
 
@@ -968,7 +965,7 @@ void SetupWizard::accept()
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 		else
 		{ //portable
-			szDir = g_pApp->applicationDirPath() + KVI_PATH_SEPARATOR_CHAR + "Settings";
+			szDir = QString("%1%2%3").arg(g_pApp->applicationDirPath()).arg(KVI_PATH_SEPARATOR_CHAR).arg("Settings");
 		}
 #endif
 
@@ -996,7 +993,7 @@ void SetupWizard::accept()
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 		else
 		{ //portable
-			szDir = g_pApp->applicationDirPath() + KVI_PATH_SEPARATOR_CHAR + "Downloads";
+			szDir = QString("%1%2%3").arg(g_pApp->applicationDirPath()).arg(KVI_PATH_SEPARATOR_CHAR).arg("Downloads");
 		}
 #endif
 
@@ -1019,9 +1016,7 @@ void SetupWizard::accept()
 		// Make local->global link
 		QString localPath = QString("%1/global").arg(g_pApp->m_szLocalKvircDir);
 		unlink(QTextCodec::codecForLocale()->fromUnicode(localPath).data());
-		int dummy; // make gcc happy
-		dummy = symlink(QTextCodec::codecForLocale()->fromUnicode(g_pApp->m_szGlobalKvircDir).data(), QTextCodec::codecForLocale()->fromUnicode(localPath).data());
-		Q_UNUSED(dummy);
+		(void)symlink(QTextCodec::codecForLocale()->fromUnicode(g_pApp->m_szGlobalKvircDir).data(), QTextCodec::codecForLocale()->fromUnicode(localPath).data());
 #endif
 
 #ifdef COMPILE_KDE_SUPPORT
@@ -1117,7 +1112,7 @@ void SetupWizard::accept()
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 	if(m_pDirMakePortable->isChecked())
 	{
-		KviFileUtils::writeFile(g_pApp->applicationDirPath() + KVI_PATH_SEPARATOR_CHAR + "portable", QString("true"));
+		KviFileUtils::writeFile(QString("%1%2%3").arg(g_pApp->applicationDirPath()).arg(KVI_PATH_SEPARATOR_CHAR).arg("portable"), QString("true"));
 		g_pApp->m_bPortable = true;
 	}
 	else

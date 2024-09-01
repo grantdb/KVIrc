@@ -23,6 +23,8 @@
 //=============================================================================
 
 #include "KviIrcConnectionServerInfo.h"
+
+#include <utility>
 #include "KviLocale.h"
 #include "KviMemory.h"
 #include "KviIrcUserDataBase.h"
@@ -51,7 +53,7 @@ void KviIrcConnectionServerInfo::addSupportedCaps(const QString & szCapList)
 {
 	m_bSupportsCap = true;
 
-	QStringList lTmp = szCapList.split(' ', QString::SkipEmptyParts);
+	QStringList lTmp = szCapList.split(' ', Qt::SkipEmptyParts);
 	foreach(QString szCap, lTmp)
 	{
 		// cap modifiers are:
@@ -83,7 +85,7 @@ void KviIrcConnectionServerInfo::addSupportedCaps(const QString & szCapList)
 
 void KviIrcConnectionServerInfo::setSupportedChannelModes(const QString & szSupportedChannelModes)
 {
-	QStringList szAllModes = szSupportedChannelModes.split(',', QString::KeepEmptyParts);
+	QStringList szAllModes = szSupportedChannelModes.split(',', Qt::KeepEmptyParts);
 
 	if(szAllModes.count() != 4)
 	{
@@ -248,6 +250,8 @@ void KviIrcConnectionServerInfo::setServerVersion(const QString & version)
 		m_pServInfo = new KviHyperionIrcServerInfo(this, version);
 	else if(version.contains("ircd-seven", Qt::CaseInsensitive))
 		m_pServInfo = new KviIrcdSevenIrcServerInfo(this, version);
+	else if(version.contains("solanum", Qt::CaseInsensitive))
+		m_pServInfo = new KviIrcdSolanumIrcServerInfo(this, version);
 	else if(version.contains("ratbox", Qt::CaseInsensitive))
 		m_pServInfo = new KviIrcdRatboxIrcServerInfo(this, version);
 	else if(version.contains("inspircd", Qt::CaseInsensitive))
@@ -274,8 +278,8 @@ void KviIrcConnectionServerInfo::setServerVersion(const QString & version)
 		m_pServInfo = new KviBasicIrcServerInfo(this, version);
 }
 
-KviBasicIrcServerInfo::KviBasicIrcServerInfo(KviIrcConnectionServerInfo * pParent, const QString & version)
-    : m_pParent(pParent), m_szServerVersion(version)
+KviBasicIrcServerInfo::KviBasicIrcServerInfo(KviIrcConnectionServerInfo * pParent, QString version)
+    : m_szServerVersion(std::move(version)), m_pParent(pParent)
 {
 }
 

@@ -415,7 +415,7 @@ RegisteredUserEntryDialog::RegisteredUserEntryDialog(QWidget * p, KviRegisteredU
 		m_pCustomColorCheck->setChecked(r->getBoolProperty("useCustomColor"));
 	g->addWidget(m_pCustomColorCheck, 5, 0, 1, 2);
 
-	m_pCustomColorSelector = new KviColorSelector(p2, QString(), m_pCustomColor, 1);
+	m_pCustomColorSelector = new KviColorSelector(p2, QString(), m_pCustomColor, true);
 	g->addWidget(m_pCustomColorSelector, 5, 2);
 
 	QPushButton * pb = new QPushButton(__tr2qs_ctx("All Properties...", "register"), p2);
@@ -429,7 +429,7 @@ RegisteredUserEntryDialog::RegisteredUserEntryDialog(QWidget * p, KviRegisteredU
 
 	// Ignore TAB
 	KviTalVBox * vb = new KviTalVBox(this);
-	vb->setMargin(10);
+	vb->setContentsMargins(10, 10, 10, 10);
 
 	m_pIgnoreEnabled = new QCheckBox(__tr2qs_ctx("Enable ignore for this user", "register"), vb);
 
@@ -437,7 +437,7 @@ RegisteredUserEntryDialog::RegisteredUserEntryDialog(QWidget * p, KviRegisteredU
 	connect(m_pIgnoreEnabled, SIGNAL(toggled(bool)), gb, SLOT(setEnabled(bool)));
 
 	QVBoxLayout * layout = new QVBoxLayout(gb);
-	layout->setMargin(20);
+	layout->setContentsMargins(20, 20, 20, 20);
 	layout->setSpacing(3);
 
 	m_pIgnoreQuery = new QCheckBox(__tr2qs_ctx("Ignore query messages", "register"), gb);

@@ -62,7 +62,7 @@
 #include "KviCryptController.h"
 #endif //COMPILE_CRYPT_SUPPORT
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <QDateTime>
 #include <QLocale>
@@ -1382,7 +1382,7 @@ void KviIrcServerParser::parseCtcpRequestTime(KviCtcpMessage * msg)
 					szTmp = date.toString(Qt::ISODate);
 					break;
 				case 2:
-					szTmp = date.toString(Qt::SystemLocaleShortDate);
+					szTmp = QLocale().toString(date, QLocale::ShortFormat);
 					break;
 			}
 			replyCtcp(msg, szTmp);
@@ -1872,7 +1872,7 @@ void KviIrcServerParser::parseCtcpReplyAvatar(KviCtcpMessage * msg)
 	    msg->msg->haltOutput() ? QString() : textLine);
 }
 
-typedef void (*dccModuleCtcpDccParseRoutine)(KviDccRequest * par);
+using dccModuleCtcpDccParseRoutine = void (*)(KviDccRequest *);
 
 void KviIrcServerParser::parseCtcpRequestDcc(KviCtcpMessage * msg)
 {

@@ -22,7 +22,7 @@
 //
 //=============================================================================
 
-#include <math.h>
+#include <cmath>
 
 #include "libkviiograph.h"
 #include "KviMainWindow.h"
@@ -35,6 +35,7 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QPainterPath>
 
 #ifdef COMPILE_PSEUDO_TRANSPARENCY
 extern KVIRC_API QPixmap * g_pShadedChildGlobalDesktopBackground;

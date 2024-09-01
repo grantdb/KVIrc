@@ -36,6 +36,7 @@
 #include "KviIrcContext.h"
 #include "KviConsoleWindow.h"
 #include "KviMainWindow.h"
+#include "KviRegExp.h"
 
 #include <map>
 
@@ -112,7 +113,7 @@ void KviIrcUrl::split(const QString & url, KviIrcUrlParts & result)
 	result.iPort = 6667;
 	result.iError = 0;
 
-	QRegExp rx("^(irc(s)?(6)?://)?\\[?([\\w\\d\\.-]*|[\\d:a-f]*)\\]?(:(\\d*))?(/(.*))?$");
+	KviRegExp rx(R"(^(irc(s)?(6)?://)?\[?([\w\d\.-]*|[\d:a-f]*)\]?(:(\d*))?(/(.*))?$)");
 
 	if(rx.indexIn(url) < 0)
 	{
@@ -142,7 +143,7 @@ void KviIrcUrl::split(const QString & url, KviIrcUrlParts & result)
 	if(result.szHost.isEmpty())
 		result.iError |= InvalidUrl;
 
-	result.chanList = rx.cap(8).isEmpty() ? QStringList() : rx.cap(8).split(',', QString::SkipEmptyParts);
+	result.chanList = rx.cap(8).isEmpty() ? QStringList() : rx.cap(8).split(',', Qt::SkipEmptyParts);
 }
 
 void KviIrcUrl::join(QString & uri, KviIrcServer * server)

@@ -34,9 +34,9 @@
 #include "KviMemory.h"
 #include "KviKvsArrayCast.h"
 #include "KviOptions.h"
+#include "KviRegExp.h"
 
 #include <QClipboard>
-#include <QRegExp>
 
 #ifdef COMPILE_SSL_SUPPORT
 // The current implementation
@@ -1595,7 +1595,7 @@ static bool str_kvs_fnc_grep(KviKvsModuleFunctionCall * c)
 	int i = 0;
 	if(bRegexp || bWild)
 	{
-		QRegExp re(szMatch, bCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive, bRegexp ? QRegExp::RegExp2 : QRegExp::Wildcard);
+		KviRegExp re(szMatch, bCaseSensitive ? KviRegExp::CaseSensitive : KviRegExp::CaseInsensitive, bRegexp ? KviRegExp::RegExp : KviRegExp::Wildcard);
 		while(idx < cnt)
 		{
 			KviKvsVariant * v = a->at(idx);
@@ -1720,45 +1720,6 @@ static bool str_kvs_fnc_split(KviKvsModuleFunctionCall * c)
 	KVSM_PARAMETER("maxitems", KVS_PT_INTEGER, KVS_PF_OPTIONAL, iMaxItems)
 	KVSM_PARAMETERS_END(c)
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-	if(c->params()->count() < 4)
-	    iMaxItems = -1;
-
-	KviKvsArray * a = new KviKvsArray();
-	c->returnValue()->setArray(a);
-
-	if(iMaxItems == 0)
-		return true;
-	if(iMaxItems == 1)
-	{
-		a->append(new KviKvsVariant{szStr});
-		return true;
-	}
-
-	bool bWild = szFla.contains('w', Qt::CaseInsensitive);
-	bool bContainsR = szFla.contains('r', Qt::CaseInsensitive);
-
-	QString::SplitBehavior splitBehavior = szFla.contains('n', Qt::CaseInsensitive) ? QString::SkipEmptyParts : QString::KeepEmptyParts;
-	Qt::CaseSensitivity sensitivity = szFla.contains('s', Qt::CaseInsensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive;
-
-	QVector<QStringRef> list;
-	if(bWild || bContainsR)
-		list = szStr.splitRef(QRegExp{szSep, sensitivity, bWild ? QRegExp::Wildcard : QRegExp::RegExp2}, splitBehavior);
-	else
-		list = szStr.splitRef(szSep, splitBehavior, sensitivity);
-
-	if(iMaxItems < 0 || iMaxItems >= list.size())
-	{
-		for(auto&& str : list)
-			a->append(new KviKvsVariant{str.toString()});
-	}
-	else
-	{
-		for(int i{0}; i < iMaxItems - 1; ++i)
-			a->append(new KviKvsVariant{list[i].toString()});
-		a->append(new KviKvsVariant{szStr.mid(list[iMaxItems - 1].position())});
-	}
-#else //QT_VERSION
 	if(c->params()->count() < 4)
 		iMaxItems = -1;
 
@@ -1774,10 +1735,10 @@ static bool str_kvs_fnc_split(KviKvsModuleFunctionCall * c)
 	if(iMaxItems == 0)
 		return true;
 
-	bool bWild = szFla.contains('w', Qt::CaseInsensitive);
-	bool bContainsR = szFla.contains('r', Qt::CaseInsensitive);
-	bool bCaseSensitive = szFla.contains('s', Qt::CaseInsensitive);
-	bool bNoEmpty = szFla.contains('n', Qt::CaseInsensitive);
+	bool bWild = szFla.indexOf('w', 0, Qt::CaseInsensitive) != -1;
+	bool bContainsR = szFla.indexOf('r', 0, Qt::CaseInsensitive) != -1;
+	bool bCaseSensitive = szFla.indexOf('s', 0, Qt::CaseInsensitive) != -1;
+	bool bNoEmpty = szFla.indexOf('n', 0, Qt::CaseInsensitive) != -1;
 
 	int id = 0;
 
@@ -1787,7 +1748,7 @@ static bool str_kvs_fnc_split(KviKvsModuleFunctionCall * c)
 
 	if(bContainsR || bWild)
 	{
-		QRegExp re(szSep, bCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive, bWild ? QRegExp::Wildcard : QRegExp::RegExp2);
+		KviRegExp re(szSep, bCaseSensitive ? KviRegExp::CaseSensitive : KviRegExp::CaseInsensitive, bWild ? KviRegExp::Wildcard : KviRegExp::RegExp);
 
 		while((iMatch != -1) && (iMatch < iStrLen) && ((id < (iMaxItems - 1)) || (iMaxItems < 0)))
 		{
@@ -1864,7 +1825,6 @@ static bool str_kvs_fnc_split(KviKvsModuleFunctionCall * c)
 		if(!bNoEmpty)
 			a->set(id, new KviKvsVariant(QString())); // empty string at the end
 	}
-#endif //QT_VERSION
 
 	return true;
 }

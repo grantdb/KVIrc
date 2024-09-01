@@ -34,7 +34,7 @@
 ###############################################################################
 
 # Minimum CMake version
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.16)
 
 # Name of the project
 project(kvirc)
@@ -46,10 +46,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 set(PACKAGE "kvirc")
 set(NICENAME "KVIrc")
 set(VERSION_MAJOR "5")
-set(VERSION_BRANCH "5.0")
-set(VERSION_RELEASE "5.0.0")
-set(VERSION_CODENAME "Aria")
-# REMINDER: "Quasar" is a new candidate name.
+set(VERSION_BRANCH "5.2")
+set(VERSION_RELEASE "5.2.4")
+set(VERSION_CODENAME "Quasar")
 
 string(REGEX MATCH "[0-9]+$" VERSION_MINOR ${VERSION_BRANCH})
 string(REGEX MATCH "[0-9]+$" VERSION_MICRO ${VERSION_RELEASE})
@@ -62,15 +61,10 @@ set(CMAKE_KVIRC_VERSION_RELEASE ${VERSION_RELEASE})
 set(CMAKE_KVIRC_VERSION_CODENAME ${VERSION_CODENAME})
 set(CMAKE_KVIRC_BUILD_COMMAND ${CMAKE_COMMAND})
 set(CMAKE_KVIRC_BUILD_FLAGS)
-set(CMAKE_KVIRC_BUILD_SYSTEM ${CMAKE_SYSTEM})
 set(CMAKE_KVIRC_BUILD_SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
-set(CMAKE_KVIRC_BUILD_SYSTEM_VERSION ${CMAKE_SYSTEM_VERSION})
 set(CMAKE_KVIRC_BUILD_CPU ${CMAKE_SYSTEM_PROCESSOR})
 set(CMAKE_KVIRC_BUILD_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_KVIRC_BUILD_COMPILER_FLAGS ${CMAKE_CXX_FLAGS})
-
-# Prefer Python 2.7 over 3.x (which is currently incompatible) - GitHub issue #2020
-set(Python_ADDITIONAL_VERSIONS "2.7")
 
 # Suffix for GNU/Linux
 set(LIB_SUFFIX
@@ -95,7 +89,7 @@ if(MANUAL_REVISION_UNSET)
 		if(GIT_FOUND)
 			message(STATUS "Found Git ${GIT_VERSION_STRING}")
 			execute_process(
-				COMMAND ${GIT_EXECUTABLE} describe "--dirty"
+				COMMAND ${GIT_EXECUTABLE} describe "--dirty" "--always" "--tags"
 				WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 				RESULT_VARIABLE res_var
 				OUTPUT_VARIABLE GIT_COMMIT_ID
@@ -193,11 +187,18 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo OR 
 endif()
 
 option(WANT_STRIP "Strip binaries (discard symbols from object files)" OFF)
+set(WANT_SANITIZER OFF CACHE STRING "Enable debug sanitizers (requires WANT_DEBUG)")
+set_property(CACHE WANT_SANITIZER PROPERTY STRINGS OFF ADDRESS MEMORY THREAD)
 
 if(WANT_ENV_FLAGS)
 	set(CMAKE_BUILD_TYPE Undefined)
 	set(CMAKE_STATUS_DEBUG_SUPPORT "Environment-driven")
 else()
+	if(MSVC)
+		# Qt has /Zc:wchar_t
+		set(CMAKE_CXX_FLAGS "/MP /Zc:wchar_t /EHsc /utf-8")
+		set(CMAKE_C_FLAGS "/MP /Zc:wchar_t /EHsc /utf-8")
+	endif()
 	if(WANT_DEBUG)
 		set(WANT_STRIP OFF CACHE BOOL "Strip binaries (discard symbols from object files)" FORCE)
 		set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -208,8 +209,8 @@ else()
 			# CMAKE_CXX_FLAGS_DEBUG before finalizing. This results in the
 			# default DEBUG flag of '-g' being appended, and therefore
 			# overriding what you specify here
-			set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -pipe --exec-charset=UTF-8 --input-charset=UTF-8 --no-implement-inlines --unit-at-a-time --fast-math")
-			set(CMAKE_C_FLAGS_DEBUG "-O0 -ggdb -pipe --exec-charset=UTF-8 --input-charset=UTF-8 --no-implement-inlines --unit-at-a-time --fast-math")
+			set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -pipe --exec-charset=UTF-8 --input-charset=UTF-8 --no-implement-inlines --unit-at-a-time --fast-math")
+			set(CMAKE_C_FLAGS_DEBUG "-ggdb -pipe --exec-charset=UTF-8 --input-charset=UTF-8 --no-implement-inlines --unit-at-a-time --fast-math")
 			include(CheckCXXCompilerFlag)
 			CHECK_CXX_COMPILER_FLAG("-fvisibility=hidden" CXX_HAS_VH_FLAG)
 			CHECK_CXX_COMPILER_FLAG("-fvisibility-inlines-hidden" CXX_HAS_VIH_FLAG)
@@ -227,13 +228,28 @@ else()
 		else()
 			if(MSVC)
 				# this is the equivalent of -O0 -g according to MSDN
-				# QT4 has /Zc:wchar_t-, QT5 has /Zc:wchar_t
-				set(CMAKE_CXX_FLAGS "/Od /Zi /Zc:wchar_t /EHsc /W3")
-				set(CMAKE_C_FLAGS "/Od /Zi /Zc:wchar_t /EHsc /W3")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Od /Zi /W3")
+				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Od /Zi /W3")
 			else()
 				set(CMAKE_CXX_FLAGS "-O0 -g")
 				set(CMAKE_C_FLAGS "-O0 -g")
 			endif()
+		endif()
+		string(TOUPPER "${WANT_SANITIZER}" WANT_SANITIZER )
+		if(WANT_SANITIZER STREQUAL ADDRESS)
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer")
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer")
+			set(CMAKE_STATUS_DEBUG_SUPPORT "Yes, with address,leak and undefined behavior sanitizers")
+		elseif(WANT_SANITIZER STREQUAL MEMORY)
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory -fPIE -pie -fno-omit-frame-pointer")
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=memory -fPIE -pie -fno-omit-frame-pointer")
+			set(CMAKE_STATUS_DEBUG_SUPPORT "Yes, with memory sanitizer")
+		elseif(WANT_SANITIZER STREQUAL THREAD)
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
+			set(CMAKE_STATUS_DEBUG_SUPPORT "Yes, with thread sanitizer")
+		elseif(NOT WANT_SANITIZER STREQUAL OFF)
+			message(FATAL_ERROR "Invalid sanitizer ${WANT_SANITIZER}. Available sanitizers: address, memory, thread")
 		endif()
 	else()
 		if(WANT_STRIP)
@@ -261,10 +277,9 @@ else()
 			endif()
 		else()
 			if(MSVC)
-				# /Ox is -O3
-				# QT4 has /Zc:wchar_t-, QT5 has /Zc:wchar_t
-				set(CMAKE_CXX_FLAGS "/Ox /Zc:wchar_t /EHsc")
-				set(CMAKE_C_FLAGS "/Ox /Zc:wchar_t /EHsc")
+				#/GL causes compilation error (mix static and dynamic link lib)
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /Gw")
+				set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /O2 /Gw")
 			else()
 				set(CMAKE_CXX_FLAGS "-O3")
 				set(CMAKE_C_FLAGS "-O3")
@@ -309,6 +324,7 @@ endif()
 if(UNIX)
 	if(APPLE)
 		set(CMAKE_KVIRC_RESOURCES_DIR "${CMAKE_INSTALL_PREFIX}/Contents/Resources/")
+		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	else()
 		# Assume GNU/Linux
 		set(CMAKE_KVIRC_RESOURCES_DIR "${CMAKE_INSTALL_PREFIX}/share/kvirc/${VERSION_BRANCH}/")
@@ -363,9 +379,7 @@ if(CMAKE_USE_WIN32_THREADS_INIT OR CMAKE_USE_PTHREADS_INIT)
 		set(CMAKE_STATUS_THREADS_SUPPORT "Win32")
 		list(APPEND CMAKE_KVIRC_BUILD_FLAGS Threads=Win32)
 	else()
-		if(CMAKE_HAVE_THREADS_LIBRARY)
-			list(APPEND LIBS ${CMAKE_THREAD_LIBS_INIT})
-		endif()
+		list(APPEND LIBS Threads::Threads)
 		set(COMPILE_THREADS_USE_POSIX 1)
 		list(APPEND CMAKE_KVIRC_BUILD_FLAGS Threads=POSIX)
 		if(WANT_IGNORE_SIGALARM)
@@ -388,18 +402,25 @@ if(ZLIB_FOUND)
 endif()
 
 ############################################################################
-# Check for Qt5
+# Check for Qt
 ############################################################################
 
-find_package(Qt5Widgets)
-if(Qt5Widgets_FOUND)
-	set(CMAKE_STATUS_QT_VERSION "${Qt5Widgets_VERSION_STRING}")
-	set(qt5_kvirc_modules)
+# first check if Qt6 or Qt5 has to be used
+if(NOT DEFINED QT_VERSION_MAJOR)
+	find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 else()
-	message(FATAL_ERROR "No Qt5 found!")
+	find_package(QT NAMES Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
+endif()
+# second, detect available modules for the specific Qt version
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+if(Qt${QT_VERSION_MAJOR}Widgets_FOUND)
+	set(CMAKE_STATUS_QT_VERSION "${QT_VERSION}")
+	set(qt_kvirc_modules)
+else()
+	message(FATAL_ERROR "No Qt5 or Qt6 found!")
 endif()
 
-# automoc is used by both qt4 and qt5
+# automoc is used by qt
 set(CMAKE_AUTOMOC TRUE)
 
 # Shared options
@@ -410,96 +431,118 @@ else()
 	option(WANT_QTDBUS "Whether to compile Qt D-Bus support" ON)
 endif()
 
-option(WANT_QTWEBKIT "Whether to compile Qt WebKit support" ON)
+option(WANT_QTWEBENGINE "Whether to compile Qt WebEngine support" ON)
+option(WANT_QTWEBKIT "Alias for WANT_QTWEBENGINE" OFF)
 option(WANT_QTSVG "Whether to compile Qt SVG support" ON)
 
 # May be re-set below, if the proper libs are found.
 set(CMAKE_STATUS_QX11INFO_SUPPORT "Not available")
 
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
-list(APPEND qt5_kvirc_modules Qt5::Widgets)
+include_directories(${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS})
+list(APPEND qt_kvirc_modules Qt::Widgets)
+
+# Qt6 Compat module for Qt5; Needed by QTextCodec
+if(${QT_VERSION_MAJOR} EQUAL 6)
+	find_package(Qt6 REQUIRED COMPONENTS Core5Compat)
+	if(Qt6Core5Compat_FOUND)
+		include_directories(${Qt6Core5Compat_INCLUDE_DIRS})
+		list(APPEND qt_kvirc_modules Qt::Core5Compat)
+	endif()
+endif()
 
 # Qt SQL
-find_package(Qt5Sql)
-if(Qt5Sql_FOUND)
-	include_directories(${Qt5Sql_INCLUDE_DIRS})
-	list(APPEND qt5_kvirc_modules Qt5::Sql)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Sql)
+if(Qt${QT_VERSION_MAJOR}Sql_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}Sql_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::Sql)
 endif()
 
 # Qt XML
-find_package(Qt5Xml)
-if(Qt5Xml_FOUND)
-	include_directories(${Qt5Xml_INCLUDE_DIRS})
-	list(APPEND qt5_kvirc_modules Qt5::Xml)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Xml)
+if(Qt${QT_VERSION_MAJOR}Xml_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}Xml_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::Xml)
 endif()
 
 # Qt Network
-find_package(Qt5Network)
-if(Qt5Network_FOUND)
-	include_directories(${Qt5Network_INCLUDE_DIRS})
-	list(APPEND qt5_kvirc_modules Qt5::Network)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network)
+if(Qt${QT_VERSION_MAJOR}Network_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}Network_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::Network)
 endif()
 
 # Qt PrintSupport
-find_package(Qt5PrintSupport)
-if(Qt5PrintSupport_FOUND)
-	include_directories(${Qt5PrintSupport_INCLUDE_DIRS})
-	list(APPEND qt5_kvirc_modules Qt5::PrintSupport)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS PrintSupport)
+if(Qt${QT_VERSION_MAJOR}PrintSupport_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}PrintSupport_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::PrintSupport)
 endif()
 
 # Qt Multimedia
-find_package(Qt5Multimedia)
-if(Qt5Multimedia_FOUND)
-	include_directories(${Qt5Multimedia_INCLUDE_DIRS})
-	list(APPEND qt5_kvirc_modules Qt5::Multimedia)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Multimedia)
+if(Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}Multimedia_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::Multimedia)
+	set(COMPILE_QTMULTIMEDIA_SUPPORT 1)
+endif()
+
+# Qt Concurrent
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Concurrent)
+if(Qt${QT_VERSION_MAJOR}Concurrent_FOUND)
+	include_directories(${Qt${QT_VERSION_MAJOR}Concurrent_INCLUDE_DIRS})
+	list(APPEND qt_kvirc_modules Qt::Concurrent)
 endif()
 
 # Qt D-Bus support
 if(WANT_QTDBUS)
-	find_package(Qt5DBus)
-	if(Qt5DBus_FOUND)
-		list(APPEND qt5_kvirc_modules Qt5::DBus)
-		include_directories(${Qt5DBus_INCLUDE_DIRS})
+	find_package(Qt${QT_VERSION_MAJOR} COMPONENTS DBus)
+	if(Qt${QT_VERSION_MAJOR}DBus_FOUND)
+		list(APPEND qt_kvirc_modules Qt::DBus)
+		include_directories(${Qt${QT_VERSION_MAJOR}DBus_INCLUDE_DIRS})
 		set(COMPILE_DBUS_SUPPORT 1)
 	endif()
 endif()
 
-# Qt WebKit support
-if(WANT_QTWEBKIT)
-	find_package(Qt5WebKitWidgets)
-	if(Qt5WebKitWidgets_FOUND)
-		list(APPEND qt5_kvirc_modules Qt5::WebKitWidgets)
-		include_directories(${Qt5WebKitWidgets_INCLUDE_DIRS})
-		set(COMPILE_WEBKIT_SUPPORT 1)
+# Qt WebEngine support
+if(WANT_QTWEBENGINE OR WANT_QTWEBKIT)
+	find_package(Qt${QT_VERSION_MAJOR} COMPONENTS WebEngineWidgets)
+	if(Qt${QT_VERSION_MAJOR}WebEngineWidgets_FOUND)
+		list(APPEND qt_kvirc_modules Qt${QT_VERSION_MAJOR}::WebEngineWidgets)
+		include_directories(${Qt${QT_VERSION_MAJOR}WebKitWidgets_INCLUDE_DIRS})
+		set(COMPILE_WEBENGINE_SUPPORT 1)
 	endif()
 endif()
 
 # Qt SVG support
 if(WANT_QTSVG)
-	find_package(Qt5Svg)
-	if(Qt5Svg_FOUND)
-		list(APPEND qt5_kvirc_modules Qt5::Svg)
-		include_directories(${Qt5Svg_INCLUDE_DIRS})
+	find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Svg)
+	if(Qt${QT_VERSION_MAJOR}Svg_FOUND)
+		list(APPEND qt_kvirc_modules Qt::Svg)
+		include_directories(${Qt${QT_VERSION_MAJOR}Svg_INCLUDE_DIRS})
 		set(COMPILE_SVG_SUPPORT 1)
 	endif()
 endif()
 
-if(WIN32)
-	find_package(Qt5WinExtras)
-	if(Qt5WinExtras_FOUND)
-		list(APPEND qt5_kvirc_modules Qt5::WinExtras)
-		include_directories(${Qt5WinExtras_INCLUDE_DIRS})
+if(WIN32 AND ${QT_VERSION_MAJOR} EQUAL 5)
+	find_package(Qt${QT_VERSION_MAJOR} COMPONENTS WinExtras)
+	if(Qt${QT_VERSION_MAJOR}WinExtras_FOUND)
+		list(APPEND qt_kvirc_modules Qt::WinExtras)
+		include_directories(${Qt${QT_VERSION_MAJOR}WinExtras_INCLUDE_DIRS})
 	endif()
 endif()
 
-# Qt5 requires the X11Extras module for the QX11Info class (which is needed for XSS support and other stuff)
+# Qt requires the X11Extras module for the QX11Info class (which is needed for XSS support and other stuff)
 if(UNIX AND NOT APPLE)
-	find_package(Qt5X11Extras)
-	if(Qt5X11Extras_FOUND)
-		set(COMPILE_QX11INFO_SUPPORT 1)
-		set(CMAKE_STATUS_QX11INFO_SUPPORT "Yes")
-		list(APPEND qt5_kvirc_modules Qt5::X11Extras)
-		include_directories(${Qt5X11Extras_INCLUDE_DIRS})
+	if(${QT_VERSION_MAJOR} EQUAL 5)
+		find_package(Qt${QT_VERSION_MAJOR} COMPONENTS X11Extras)
+		if(Qt${QT_VERSION_MAJOR}X11Extras_FOUND)
+			set(COMPILE_QX11INFO_SUPPORT 1)
+			set(CMAKE_STATUS_QX11INFO_SUPPORT "Yes")
+			list(APPEND qt_kvirc_modules Qt::X11Extras)
+			include_directories(${Qt${QT_VERSION_MAJOR}X11Extras_INCLUDE_DIRS})
+		endif()
+	else()
+		set(CMAKE_STATUS_QX11INFO_SUPPORT "Not supported on Qt6")
 	endif()
 endif()
 
@@ -512,36 +555,41 @@ option(WANT_KDE "Whether to use KDE support" ON)
 set(CMAKE_RESULT_USING_KDE false)
 
 if(WANT_KDE)
-	# Using Qt5 -> KDE5
+	# Using QtX -> KDEX
 	find_package(ECM 1.0.0 QUIET NO_MODULE)
 	if(DEFINED ECM_VERSION_MAJOR)
 		set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR} ${CMAKE_MODULE_PATH})
+		set(KDE_COMPONENTS
+			CoreAddons      # KAboutData
+			I18n            # KLocalizedString
+			XmlGui          # KMainWindow
+			WindowSystem    # KWindowSystem
+			Notifications   # KNotification
+			Service         # KService, KApplicationTrader
+			KIO             # KTerminalLauncherJob, KIO/ApplicationLauncherJob
+			Parts           # KParts
+		)
+		if(${QT_VERSION_MAJOR} EQUAL 6)
+			list(APPEND KDE_COMPONENTS StatusNotifierItem)
+		endif()
 
-		find_package(KF5 "5.2.0" COMPONENTS
-				CoreAddons      # KAboutData
-				I18n            # KLocalizedString
-				XmlGui          # KMainWindow
-				WindowSystem    # KWindowSystem
-				Notifications   # KNotification
-				Service         # KToolInvocation
-			)
+		find_package(KF${QT_VERSION_MAJOR} "5.2.0" COMPONENTS ${KDE_COMPONENTS})
 
-		if(KF5_FOUND)
+		if(KF${QT_VERSION_MAJOR}_FOUND)
 			set(CMAKE_RESULT_USING_KDE true)
-			#include_directories(${KDE4_INCLUDES})
-			#add_definitions(${KDE4_DEFINITIONS})
 			set(COMPILE_KDE_SUPPORT 1)
-			# There seems to be no portable way to figure out if KDE version is 4 or 5
-			set(COMPILE_KDE5_SUPPORT 1)
-			list(APPEND LIBS KF5::CoreAddons KF5::I18n KF5::XmlGui KF5::WindowSystem KF5::Notifications KF5::Service)
+			list(APPEND LIBS KF${QT_VERSION_MAJOR}::CoreAddons KF${QT_VERSION_MAJOR}::I18n KF${QT_VERSION_MAJOR}::XmlGui KF${QT_VERSION_MAJOR}::WindowSystem KF${QT_VERSION_MAJOR}::Notifications KF${QT_VERSION_MAJOR}::Service KF${QT_VERSION_MAJOR}::KIOCore KF${QT_VERSION_MAJOR}::KIOGui KF${QT_VERSION_MAJOR}::KIOWidgets KF${QT_VERSION_MAJOR}::Parts)
+			if(${QT_VERSION_MAJOR} EQUAL 6)
+				list(APPEND LIBS KF${QT_VERSION_MAJOR}::StatusNotifierItem)
+			endif()
 			set(CMAKE_STATUS_KDE_SUPPORT "Yes")
-			if(DEFINED KF5_VERSION)
-				set(CMAKE_STATUS_KDE_VERSION ${KF5_VERSION})
+			if(DEFINED KF${QT_VERSION_MAJOR}_VERSION)
+				set(CMAKE_STATUS_KDE_VERSION ${KF${QT_VERSION_MAJOR}_VERSION})
 			else()
 				set(CMAKE_STATUS_KDE_VERSION "5.X")
 			endif()
 		else()
-			set(CMAKE_STATUS_KDE_SUPPORT "Not available (KF5 not found)")
+			set(CMAKE_STATUS_KDE_SUPPORT "Not available (KF${QT_VERSION_MAJOR} not found)")
 		endif()
 	else()
 		set(CMAKE_STATUS_KDE_SUPPORT "Not available (ECM not found)")
@@ -592,8 +640,8 @@ endif()
 # Phonon support
 option(WANT_PHONON "Whether to compile Phonon support" ON)
 if(WANT_PHONON)
-	find_package(Phonon4Qt5 NO_MODULE)
-	if(Phonon4Qt5_FOUND)
+	find_package(Phonon4Qt${QT_VERSION_MAJOR} NO_MODULE)
+	if(Phonon4Qt${QT_VERSION_MAJOR}_FOUND)
 		set(COMPILE_PHONON_SUPPORT 1)
 		list(APPEND LIBS ${PHONON_LIBRARY})
 		list(APPEND CMAKE_STATUS_AUDIO_BACKENDS "Phonon")
@@ -601,19 +649,8 @@ if(WANT_PHONON)
 endif()
 
 # this is a no-op - not nice i know, but real no point in making it optional...
-if(Qt5Multimedia_FOUND)
-	list(APPEND CMAKE_STATUS_AUDIO_BACKENDS "Qt5Multimedia")
-endif()
-
-# ESD
-option(WANT_ESD "Whether to compile ESD support" ON)
-if(WANT_ESD)
-	find_package(ESD)
-	if(ESD_FOUND)
-		set(COMPILE_ESD_SUPPORT 1)
-		list(APPEND LIBS ${ESD_LIBRARY})
-		list(APPEND CMAKE_STATUS_AUDIO_BACKENDS "Esd")
-	endif()
+if(Qt${QT_VERSION_MAJOR}Multimedia_FOUND)
+	list(APPEND CMAKE_STATUS_AUDIO_BACKENDS "Qt${QT_VERSION_MAJOR}Multimedia")
 endif()
 
 # oss + audiofile
@@ -677,8 +714,6 @@ if(WANT_OPENSSL)
 			list(APPEND LIBS ${OPENSSL_LIBRARIES})
 			set(COMPILE_SSL_SUPPORT 1)
 			set(CMAKE_STATUS_SSL_SUPPORT "Yes")
-			# CMake FindOpenSSL is incomplete and does not add -lcrypto to LIBS...
-			list(APPEND LIBS -lcrypto)
 		endif()
 	else()
 		set(CMAKE_STATUS_SSL_SUPPORT "Not available")
@@ -724,38 +759,37 @@ else()
 endif()
 
 # Check for Perl support
-# (note: needed for user documentation generation)
 option(WANT_PERL "Compile Perl support" ON)
+option(WANT_PERL_DOCS "Use Perl to build documentation" ON)
+if(WANT_PERL OR WANT_PERL_DOCS)
+	find_package(Perl)
+endif()
 
-# Perl is needed for documentation, too
-find_package(Perl)
-
-if(WANT_PERL)
-	if(PERL_FOUND)
+if(PERL_FOUND)
+	if(WANT_PERL)
 		set(COMPILE_PERL_SUPPORT 1)
-		set(CMAKE_STATUS_PERL_SUPPORT "Yes, used for scripting+doc")
-
 		# Perl compilation / linking flags are handled inside perlcore module
-	else()
-		set(CMAKE_STATUS_PERL_SUPPORT "No")
+		set(CMAKE_STATUS_PERL_SUPPORT "Yes, used for scripting")
+	endif()
+	if(WANT_PERL_DOCS)
+		set(CMAKE_STATUS_PERL_SUPPORT "Used for doc, but scripting disabled by user")
+	endif()
+	if(WANT_PERL AND WANT_PERL_DOCS)
+		set(CMAKE_STATUS_PERL_SUPPORT "Yes, used for scripting+doc")
 	endif()
 else()
-	if(PERL_FOUND)
-		set(CMAKE_STATUS_PERL_SUPPORT "Used for doc, but scripting disabled by user")
-	else()
-		set(CMAKE_STATUS_PERL_SUPPORT "No")
-	endif()
+	set(CMAKE_STATUS_PERL_SUPPORT "No")
 endif()
 
 # Check for Python support
 option(WANT_PYTHON "Compile Python support" ON)
 if(WANT_PYTHON)
-	find_package(PythonLibs 2.7)
-	if(PYTHONLIBS_FOUND)
+	find_package(Python3 COMPONENTS Development)
+	if(Python3_FOUND)
 		set(COMPILE_PYTHON_SUPPORT 1)
-		set(CMAKE_STATUS_PYTHON_SUPPORT "Yes")
-		list(APPEND LIBS ${PYTHON_LIBRARIES})
-		include_directories(${PYTHON_INCLUDE_DIRS})
+		set(CMAKE_STATUS_PYTHON_SUPPORT "Yes, Python ${Python3_VERSION}")
+		list(APPEND LIBS ${Python3_LIBRARIES})
+		include_directories(${Python3_INCLUDE_DIRS})
 	else()
 		set(CMAKE_STATUS_PYTHON_SUPPORT "No, not found.")
 	endif()
@@ -897,10 +931,10 @@ option(WANT_DCC_VIDEO "Compile DCC video support" OFF)
 
 if(WANT_DCC_VIDEO)
 	# Qt MultimediaWidgets
-	find_package(Qt5MultimediaWidgets)
-	if(Qt5MultimediaWidgets_FOUND)
-	    include_directories(${Qt5MultimediaWidgets_INCLUDE_DIRS})
-	    list(APPEND qt5_kvirc_modules Qt5::MultimediaWidgets)
+	find_package(Qt${QT_VERSION_MAJOR} COMPONENTS MultimediaWidgets)
+	if(Qt${QT_VERSION_MAJOR}MultimediaWidgets_FOUND)
+	    include_directories(${Qt${QT_VERSION_MAJOR}MultimediaWidgets_INCLUDE_DIRS})
+	    list(APPEND qt_kvirc_modules Qt::MultimediaWidgets)
 	    set(COMPILE_DISABLE_DCC_VIDEO 0)
 	    set(CMAKE_STATUS_DCC_VIDEO_SUPPORT "Yes")
 	else()
@@ -1011,19 +1045,6 @@ if(WANT_BEER)
 	message(STATUS "Opening the beer... -  done")
 endif()
 
-############################################################################
-# By default we disable QGtkStyle since it messes up with our theming
-# Some users want it anyway, and we sometimes need to check it
-############################################################################
-
-option(WANT_GTKSTYLE "Enable QGtkStyle" OFF)
-if(WANT_GTKSTYLE)
-	set(COMPILE_ENABLE_GTKSTYLE 1)
-	set(CMAKE_STATUS_GTK_SUPPORT "Yes")
-else()
-	set(CMAKE_STATUS_GTK_SUPPORT "No")
-endif()
-
 ###############################################################################
 # Translation (gettext) checks
 ###############################################################################
@@ -1112,7 +1133,7 @@ if(WANT_DOXYGEN)
 		set(CMAKE_STATUS_DOXYGEN_SUPPORT "Yes")
 		add_custom_target(
 			devdocs
-			@echo Generating api documentation
+			COMMENT "Generating API documentation..."
 		)
 
 		add_custom_command(
@@ -1147,7 +1168,7 @@ endif()
 if(UNIX)
 	add_custom_target(
 		distclean
-		@echo Cleaning for source distribution
+		COMMENT "Cleaning for source distribution..."
 	)
 	set(
 		DISTCLEANED
@@ -1265,7 +1286,7 @@ endif()
 # KviLib path
 if(UNIX)
 	if(APPLE)
-		set(KVIRC_LIB_PATH ${CMAKE_INSTALL_PREFIX}/Contents/MacOS/)
+		set(KVIRC_LIB_PATH ${CMAKE_INSTALL_PREFIX}/Contents/Frameworks/)
 	else()
 		# Assume Linux
 		set(KVIRC_LIB_PATH ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/)
@@ -1320,13 +1341,12 @@ message(STATUS "   Memory checks support       : ${CMAKE_STATUS_MEMORY_CHECKS_SU
 message(STATUS "Features:")
 message(STATUS "   X11 support                 : ${CMAKE_STATUS_X11_SUPPORT}")
 message(STATUS "   Qt version                  : ${CMAKE_STATUS_QT_VERSION}")
-message(STATUS "   Qt modules                  : ${qt5_kvirc_modules}")
+message(STATUS "   Qt modules                  : ${qt_kvirc_modules}")
 message(STATUS "   Qt/X11 interface            : ${CMAKE_STATUS_QX11INFO_SUPPORT}")
 message(STATUS "   KDE support                 : ${CMAKE_STATUS_KDE_SUPPORT}")
 if(CMAKE_RESULT_USING_KDE)
 	message(STATUS "   KDE version                 : ${CMAKE_STATUS_KDE_VERSION}")
 endif()
-message(STATUS "   GTK support                 : ${CMAKE_STATUS_GTK_SUPPORT}")
 message(STATUS "   IPv6 support                : ${CMAKE_STATUS_IPV6_SUPPORT}")
 message(STATUS "   Pseudo-transparency support : ${CMAKE_STATUS_TRANSPARENCY_SUPPORT}")
 message(STATUS "   Spell-checker support       : ${CMAKE_STATUS_SPELLCHECKER_SUPPORT}")

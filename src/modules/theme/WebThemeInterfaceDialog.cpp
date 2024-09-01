@@ -24,8 +24,6 @@
 
 #include "kvi_settings.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-
 #include "WebThemeInterfaceDialog.h"
 #include "ThemeFunctions.h"
 
@@ -33,6 +31,7 @@
 #include "KviFileUtils.h"
 #include "KviIconManager.h"
 #include "KviLocale.h"
+#include "KviRegExp.h"
 
 WebThemeInterfaceDialog::WebThemeInterfaceDialog(QWidget * par)
     : KviWebPackageManagementDialog(par)
@@ -47,9 +46,7 @@ WebThemeInterfaceDialog::WebThemeInterfaceDialog(QWidget * par)
 	g_pApp->getGlobalKvircDirectory(m_szGlobalThemesPath, KviApplication::Themes);
 	m_szGlobalThemesPath += KVI_PATH_SEPARATOR_CHAR;
 
-	setPackagePageUrl(
-	    QString::fromLatin1("http://www.kvirc.de/app/themes.php?version=" KVI_VERSION "&lang=%1")
-	        .arg(KviLocale::instance()->localeName()));
+	setPackagePageUrl("https://kvirc.github.io/kvirc-themes/");
 }
 WebThemeInterfaceDialog::~WebThemeInterfaceDialog()
     = default;
@@ -62,9 +59,7 @@ bool WebThemeInterfaceDialog::installPackage(const QString & szPath, QString & s
 bool WebThemeInterfaceDialog::packageIsInstalled(const QString & szId, const QString & szVersion)
 {
 	QString szSubdir = szId + QString("-") + szVersion;
-	szSubdir.replace(QRegExp("[^a-zA-Z0-9_\\-.][^a-zA-Z0-9_\\-.]*"), "_");
+	szSubdir.replace(KviRegExp("[^a-zA-Z0-9_\\-.][^a-zA-Z0-9_\\-.]*"), "_");
 
 	return KviFileUtils::fileExists(m_szGlobalThemesPath + szSubdir) || KviFileUtils::fileExists(m_szLocalThemesPath + szSubdir);
 }
-
-#endif //COMPILE_WEBKIT_SUPPORT

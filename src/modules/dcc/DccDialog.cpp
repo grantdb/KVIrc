@@ -33,11 +33,11 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QStringList>
-#include <QDesktopWidget>
 #include <QEvent>
 #include <QCloseEvent>
 #include <QShowEvent>
 #include <QIcon>
+#include <QScreen>
 
 DccDialog::DccDialog(DccBroker * br, DccDescriptor * dcc)
 {
@@ -64,7 +64,7 @@ DccAcceptDialog::DccAcceptDialog(DccBroker * br, DccDescriptor * dcc, const QStr
 	setObjectName("dcc_accept_box");
 	//QVBoxLayout * vb = new QVBoxLayout(this,4,4);
 	QVBoxLayout * vb = new QVBoxLayout(this);
-	vb->setMargin(4);
+	vb->setContentsMargins(4, 4, 4, 4);
 	vb->setSpacing(4);
 	QLabel * l = new QLabel(text, this);
 	l->setWordWrap(true);
@@ -120,10 +120,10 @@ void DccAcceptDialog::closeEvent(QCloseEvent * e)
 
 void DccAcceptDialog::showEvent(QShowEvent * e)
 {
-	int iScreen = g_pApp->desktop()->screenNumber(g_pMainWindow);
-	if(iScreen < 0)
-		iScreen = g_pApp->desktop()->primaryScreen();
-	QRect rect = g_pApp->desktop()->screenGeometry(iScreen);
+	QScreen *pScreen = g_pMainWindow->screen();
+	if(!pScreen)
+		pScreen = g_pApp->primaryScreen();
+	QRect rect = pScreen->availableGeometry();
 	move(rect.x() + ((rect.width() - width()) / 2),rect.y() + ((rect.height() - height()) / 2));
 	QWidget::showEvent(e);
 }
@@ -134,7 +134,7 @@ DccRenameDialog::DccRenameDialog(DccBroker * br, DccDescriptor * dcc, const QStr
 	setObjectName("dcc_rename_box");
 	//QVBoxLayout * vb = new QVBoxLayout(this,4,4);
 	QVBoxLayout * vb = new QVBoxLayout(this);
-	vb->setMargin(4);
+	vb->setContentsMargins(4, 4, 4, 4);
 	vb->setSpacing(4);
 	QLabel * l = new QLabel(text, this);
 	l->setWordWrap(true);
@@ -186,10 +186,10 @@ void DccRenameDialog::closeEvent(QCloseEvent * e)
 
 void DccRenameDialog::showEvent(QShowEvent * e)
 {
-	int iScreen = g_pApp->desktop()->screenNumber(g_pMainWindow);
-	if(iScreen < 0)
-		iScreen = g_pApp->desktop()->primaryScreen();
-	QRect rect = g_pApp->desktop()->screenGeometry(iScreen);
+	QScreen *pScreen = g_pMainWindow->screen();
+	if(!pScreen)
+		pScreen = g_pApp->primaryScreen();
+	QRect rect = pScreen->availableGeometry();
 	move(rect.x() + ((rect.width() - width()) / 2),rect.y() + ((rect.height() - height()) / 2));
 	QWidget::showEvent(e);
 }

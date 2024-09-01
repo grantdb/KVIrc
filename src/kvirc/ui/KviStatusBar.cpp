@@ -89,7 +89,7 @@ KviStatusBar::KviStatusBar(KviMainWindow * pFrame)
 
 	m_pMessageLabel = new QLabel("<b>[x]</b> x", this);
 	m_pMessageLabel->setObjectName("msgstatuslabel");
-	m_pMessageLabel->setMargin(1);
+	m_pMessageLabel->setContentsMargins(1, 1, 1, 1);
 	insertWidget(0, m_pMessageLabel);
 	m_iLastMinimumHeight = 0;
 	m_bStopLayoutOnAddRemove = true;
@@ -129,7 +129,13 @@ void KviStatusBar::dragMoveEvent(QDragMoveEvent * de)
 		// move!
 		while(pApplet)
 		{
-			if(de->pos().x() < (pApplet->x() + pApplet->width() - m_pClickedApplet->width()))
+			if(
+#if(QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+				de->pos().x()
+#else
+				de->position().x()
+#endif
+				 < (pApplet->x() + pApplet->width() - m_pClickedApplet->width()))
 			{
 				pApplet = m_pAppletList->prev();
 			}
@@ -312,7 +318,7 @@ void KviStatusBar::tipRequest(QHelpEvent * e)
 	QString szTip;
 	if(pApplet)
 	{
-		szTip = "<table style=\"white-space: pre\"><tr><td bgcolor=\"#303030\" align=\"center\"><font color=\"#ffffff\"><b>" + pApplet->descriptor()->visibleName() + "</b></font></td></tr>";
+		szTip = R"(<table style="white-space: pre"><tr><td bgcolor="#303030" align="center"><font color="#ffffff"><b>)" + pApplet->descriptor()->visibleName() + "</b></font></td></tr>";
 
 		QString szTipx = pApplet->tipText(pApplet->mapFromGlobal(mapToGlobal(e->pos())));
 		if(!szTipx.isEmpty())
@@ -322,7 +328,7 @@ void KviStatusBar::tipRequest(QHelpEvent * e)
 			szTip += "</td></tr><tr><td align=\"center\"><hr></td></tr>";
 		}
 
-		szTip += "<tr><td><font color=\"#636363\" size=\"-1\">";
+		szTip += R"(<tr><td><font color="#636363" size="-1">)";
 		szTip += __tr2qs("<b>Shift+Drag</b> or <b>Ctrl+Drag</b> to move the applet around");
 		szTip += "<br>";
 		szTip += __tr2qs("Right-click to see the other options");
@@ -534,7 +540,7 @@ void KviStatusBar::mousePressEvent(QMouseEvent * e)
 			dr->setPixmap(pixmap);
 			// Start the drag and drop operation
 			m_pAppletList->sort();
-			dr->start();
+			dr->exec();
 		}
 	}
 }

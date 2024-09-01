@@ -210,6 +210,7 @@ set(kvirc_SRCS
 	kernel/KviCoreActions.cpp
 	kernel/KviCustomToolBarDescriptor.cpp
 	kernel/KviCustomToolBarManager.cpp
+	kernel/KviDbusAdaptor.cpp
 	kernel/KviDefaultScript.cpp
 	kernel/KviFileTransfer.cpp
 	kernel/KviHtmlGenerator.cpp
@@ -268,15 +269,7 @@ else()
 	add_executable(${KVIRC_BINARYNAME} ${kvirc_SRCS} ${kvirc_MOC_SRCS})
 endif()
 
-target_link_libraries(${KVIRC_BINARYNAME} ${KVILIB_BINARYNAME} ${LIBS})
-
-# Enable C++11
-set_property(TARGET ${KVIRC_BINARYNAME} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${KVIRC_BINARYNAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-
-if(Qt5Widgets_FOUND)
-	target_link_libraries(${KVIRC_BINARYNAME} ${qt5_kvirc_modules})
-endif()
+target_link_libraries(${KVIRC_BINARYNAME} ${KVILIB_BINARYNAME} ${LIBS} ${qt_kvirc_modules})
 
 if(MINGW)
 	# For some reason CMake doesn't do this itself...
@@ -309,36 +302,6 @@ endif()
 
 # Installation directives
 install(TARGETS ${KVIRC_BINARYNAME} RUNTIME DESTINATION "${KVIRC_BIN_PATH}")
-if(WIN32)
+if(MSVC)
 	install(FILES $<TARGET_PDB_FILE:${KVIRC_BINARYNAME}> DESTINATION ${KVIRC_BIN_PATH} OPTIONAL)
-endif()
-
-if(APPLE)
-	set(plugin_dest_dir ${CMAKE_INSTALL_PREFIX}/Contents/Plugins)
-	set(qtconf_dest_dir ${CMAKE_INSTALL_PREFIX}/Contents/Resources)
-	#fixme dirty hack
-	set(QT_PLUGINS_DIR "${Qt5Widgets_DIR}/../../../plugins")
-	set(QT_LIBRARY_DIR "${Qt5Widgets_DIR}/../../")
-	get_filename_component(QT_LIBRARY_DIR ${QT_LIBRARY_DIR} PATH)
-	get_filename_component(QT_LIBRARY_DIR "${QT_LIBRARY_DIR}/.." ABSOLUTE)
-
-    # qt4: codecs, iconengines, imageformats, phonon_backend, sqldrivers
-    # qt5: audio, iconengines, imageformats, mediaservice, platforms, sqldrivers
-
-    install(DIRECTORY "${QT_PLUGINS_DIR}/" DESTINATION ${plugin_dest_dir} COMPONENT Runtime
-        FILES_MATCHING REGEX "(audio|codecs|iconengines|imageformats|mediaservice|phonon_backend|platforms|sqldrivers)/.*\\.dylib"
-        REGEX ".*_debug\\.dylib" EXCLUDE)
-
-	install(CODE "
-	    file(WRITE \"${qtconf_dest_dir}/qt.conf\" \"[Paths]
-Plugins = Plugins\")
-	    " COMPONENT Runtime)
-
-	install(CODE "
-	    file(GLOB_RECURSE QTPLUGINS
-	      \"${plugin_dest_dir}/*.dylib\")
-	    set(BU_CHMOD_BUNDLE_ITEMS ON)
-	    include(BundleUtilities)
-	    fixup_bundle(\"${CMAKE_INSTALL_PREFIX}\" \"\${QTPLUGINS}\" \"${QT_LIBRARY_DIR}\")
-	    " COMPONENT Runtime)
 endif()

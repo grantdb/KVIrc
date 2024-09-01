@@ -188,7 +188,7 @@ KviBoolOption g_boolOptionsTable[KVI_NUM_BOOL_OPTIONS] = {
 	BOOL_OPTION("DccSendFakeAddressByDefault", false, KviOption_sectFlagDcc),
 	BOOL_OPTION("UseWindowListActivityMeter", false, KviOption_sectFlagWindowList | KviOption_resetUpdateGui | KviOption_groupTheme),
 	BOOL_OPTION("CloseServerWidgetAfterConnect", false, KviOption_sectFlagFrame),
-	BOOL_OPTION("PrioritizeLastActionTime", false, KviOption_sectFlagInput),
+	BOOL_OPTION("PrioritizeLastActionTime", true, KviOption_sectFlagInput),
 	BOOL_OPTION("ShowUserChannelIcons", true, KviOption_sectFlagUserListView | KviOption_resetUpdateGui | KviOption_groupTheme),
 	BOOL_OPTION("ShowUserChannelState", false, KviOption_sectFlagUserListView | KviOption_resetUpdateGui | KviOption_groupTheme),
 	BOOL_OPTION("EnableIgnoreOnPrivMsg", true, KviOption_sectFlagConnection),
@@ -332,7 +332,8 @@ KviBoolOption g_boolOptionsTable[KVI_NUM_BOOL_OPTIONS] = {
 	BOOL_OPTION("ShowTreeWindowListHandle", true, KviOption_sectFlagWindowList | KviOption_resetUpdateGui | KviOption_groupTheme),
 	BOOL_OPTION("MenuBarVisible", true, KviOption_sectFlagFrame | KviOption_resetUpdateGui),
 	BOOL_OPTION("WarnAboutHidingMenuBar", true, KviOption_sectFlagFrame),
-	BOOL_OPTION("WhoRepliesToActiveWindow", false, KviOption_sectFlagConnection)
+	BOOL_OPTION("WhoRepliesToActiveWindow", false, KviOption_sectFlagConnection),
+	BOOL_OPTION("DropConnectionOnSaslFailure", false, KviOption_sectFlagConnection)
 };
 
 // NOTICE: REUSE EQUIVALENT UNUSED KviOption_bool in KviOptions.h ENTRIES BEFORE ADDING NEW ENTRIES ABOVE
@@ -411,7 +412,12 @@ KviStringOption g_stringOptionsTable[KVI_NUM_STRING_OPTIONS] = {
 	STRING_OPTION("DefaultSrvEncoding", "", KviOption_sectFlagFrame),
 	STRING_OPTION("LogsPath", "", KviOption_sectFlagUser | KviOption_encodePath),
 	STRING_OPTION("LogsDynamicPath", "", KviOption_sectFlagUser | KviOption_encodePath),
-	STRING_OPTION("LogsExportPath", "", KviOption_sectFlagUser | KviOption_encodePath)
+	STRING_OPTION("LogsExportPath", "", KviOption_sectFlagUser | KviOption_encodePath),
+#if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
+	STRING_OPTION("QtStyle", "Fusion", KviOption_sectFlagIrcView | KviOption_resetUpdateGui | KviOption_groupTheme | KviOption_resetReloadImages)
+#else
+	STRING_OPTION("QtStyle", "", KviOption_sectFlagIrcView | KviOption_resetUpdateGui | KviOption_groupTheme | KviOption_resetReloadImages)
+#endif
 };
 
 #define STRINGLIST_OPTION(_txt, _flags) \
@@ -423,7 +429,7 @@ KviStringOption g_stringOptionsTable[KVI_NUM_STRING_OPTIONS] = {
 KviStringListOption g_stringlistOptionsTable[KVI_NUM_STRINGLIST_OPTIONS] = {
 	STRINGLIST_OPTION("HighlightWords", KviOption_sectFlagIrcView),
 	STRINGLIST_OPTION("SpamWords", KviOption_sectFlagAntiSpam),
-	STRINGLIST_OPTION_WITHDEFAULT("RecentChannels", KviOption_sectFlagRecent, "#kvirc" KVI_RECENT_CHANNELS_SEPARATOR "freenode"),
+	STRINGLIST_OPTION_WITHDEFAULT("RecentChannels", KviOption_sectFlagRecent, "#kvirc" KVI_RECENT_CHANNELS_SEPARATOR "LiberaChat"),
 	STRINGLIST_OPTION("RecentServers", KviOption_sectFlagRecent),
 	STRINGLIST_OPTION("RecentNicknames", KviOption_sectFlagRecent),
 	STRINGLIST_OPTION("ModuleExtensionToolbars", KviOption_sectFlagFrame),
@@ -636,7 +642,8 @@ KviUIntOption g_uintOptionsTable[KVI_NUM_UINT_OPTIONS] = {
 	UINT_OPTION("ToolBarButtonStyle", 0, KviOption_groupTheme), // 0 = Qt::ToolButtonIconOnly
 	UINT_OPTION("MaximumBlowFishKeySize", 56, KviOption_sectFlagNone),
 	UINT_OPTION("CustomCursorWidth", 1, KviOption_resetUpdateGui),
-	UINT_OPTION("UserListMinimumWidth", 100, KviOption_sectFlagUserListView | KviOption_resetUpdateGui | KviOption_groupTheme)
+	UINT_OPTION("UserListMinimumWidth", 100, KviOption_sectFlagUserListView | KviOption_resetUpdateGui | KviOption_groupTheme),
+	UINT_OPTION("IrcViewLineVMarginType", 1, KviOption_sectFlagIrcView | KviOption_groupTheme)
 };
 
 #define FONT_OPTION(_name, _face, _size, _flags) \
@@ -914,15 +921,9 @@ void KviApplication::saveOptions()
 	saveRecentChannels();
 
 	getLocalKvircDirectory(buffer, Config, KVI_CONFIGFILE_MAIN);
+
 	KviConfigurationFile cfg(buffer, KviConfigurationFile::Write);
 
-	if(!cfg.ensureWritable())
-	{
-		QMessageBox::warning(nullptr, __tr2qs("Warning While Writing Configuration - KVIrc"),
-		    __tr2qs("I can't write to the main configuration file:\n\t%1\nPlease ensure the directory exists and that you have the proper permissions before continuing, "
-		            "or else any custom configuration will be lost.")
-		        .arg(buffer));
-	}
 	int i;
 
 #define WRITE_OPTIONS(_num, _table)                       \
@@ -969,6 +970,14 @@ void KviApplication::saveOptions()
 	}
 	WRITE_OPTIONS(KVI_NUM_MIRCCOLOR_OPTIONS, g_mirccolorOptionsTable)
 	WRITE_OPTIONS(KVI_NUM_ICCOLOR_OPTIONS, g_iccolorOptionsTable)
+
+	if(!cfg.saveIfDirty())
+	{
+		QMessageBox::warning(nullptr, __tr2qs("Warning While Writing Configuration - KVIrc"),
+		    __tr2qs("I can't write to the main configuration file:\n\t%1\nPlease ensure the directory exists and that you have the proper permissions before continuing, "
+		            "or else any custom configuration will be lost.")
+		        .arg(buffer));
+	}
 
 #undef WRITE_OPTIONS
 }

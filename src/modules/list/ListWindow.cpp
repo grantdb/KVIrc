@@ -41,6 +41,7 @@
 #include "KviHtmlGenerator.h"
 #include "KviThemedLineEdit.h"
 #include "KviIrcMessage.h"
+#include "KviRegExp.h"
 
 #include <QTimer>
 #include <QHeaderView>
@@ -113,25 +114,25 @@ QSize ChannelTreeWidgetItemDelegate::sizeHint(const QStyleOptionViewItem & sovIt
 	ChannelTreeWidgetItem * item = dynamic_cast<ChannelTreeWidgetItem *>(treeWidget->itemFromIndex(index));
 
 	if(!item)
-		return QSize(100, iHeight);
+		return { 100, iHeight };
 
 	QFontMetrics fm(sovItem.font);
 	switch(index.column())
 	{
 		case 0:
 			//channel
-			return QSize(fm.width(item->itemData()->m_szChan), iHeight);
+			return QSize(fm.horizontalAdvance(item->itemData()->m_szChan), iHeight);
 			break;
 		case 1:
 			//users
-			return QSize(fm.width(item->itemData()->m_szUsers.toInt()), iHeight);
+			return QSize(fm.horizontalAdvance(item->itemData()->m_szUsers), iHeight);
 			break;
 		case 2:
 		default:
 			//topic
 			if(item->itemData()->m_szStrippedTopic.isEmpty())
 				item->itemData()->m_szStrippedTopic = KviControlCodes::stripControlBytes(item->itemData()->m_szTopic);
-			return QSize(fm.width(item->itemData()->m_szStrippedTopic), iHeight);
+			return QSize(fm.horizontalAdvance(item->itemData()->m_szStrippedTopic), iHeight);
 			break;
 	}
 	//make gcc happy
@@ -188,7 +189,7 @@ ListWindow::ListWindow(KviConsoleWindow * lpConsole)
 
 	KviTalHBox * pBox = new KviTalHBox(m_pTopSplitter);
 	pBox->setSpacing(1);
-	pBox->setMargin(0);
+	pBox->setContentsMargins(0, 0, 0, 0);
 
 	m_pOpenButton = new QToolButton(pBox);
 	m_pOpenButton->setObjectName("import_list");
@@ -275,7 +276,7 @@ ListWindow::~ListWindow()
 
 void ListWindow::getBaseLogFileName(QString & szBuffer)
 {
-	szBuffer.sprintf("LIST_%d", context()->id());
+	szBuffer = QString::asprintf("LIST_%d", context()->id());
 }
 
 void ListWindow::requestList()
@@ -382,7 +383,7 @@ void ListWindow::exportList()
 				szDate = date.toString(Qt::ISODate);
 				break;
 			case 2:
-				szDate = date.toString(Qt::SystemLocaleShortDate);
+				szDate = QLocale().toString(date, QLocale::ShortFormat);
 				break;
 		}
 		szFile = QString(__tr2qs("Channel list for %1 - %2")).arg(connection()->currentNetworkName(), szDate);
@@ -487,7 +488,7 @@ void ListWindow::startOfList()
 
 void ListWindow::liveSearch(const QString & szText)
 {
-	QRegExp res(szText, Qt::CaseInsensitive, QRegExp::Wildcard);
+	KviRegExp res(szText, KviRegExp::CaseInsensitive, KviRegExp::Wildcard);
 
 	ChannelTreeWidgetItem * pItem = nullptr;
 	for(int i = 0; i < m_pTreeWidget->topLevelItemCount(); i++)
@@ -525,7 +526,7 @@ void ListWindow::processData(KviIrcMessage * pMsg)
 	else
 	{
 		//rfc2812 permits wildcards here (section 3.2.6)
-		QRegExp res(m_pParamsEdit->text(), Qt::CaseInsensitive, QRegExp::Wildcard);
+		KviRegExp res(m_pParamsEdit->text(), KviRegExp::CaseInsensitive, KviRegExp::Wildcard);
 		if(
 		    res.exactMatch(pMsg->connection()->decodeText(pMsg->safeParam(1))) || res.exactMatch(pMsg->connection()->decodeText(pMsg->safeTrailing())))
 		{

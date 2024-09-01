@@ -39,10 +39,9 @@
 #include "KviScriptButton.h"
 #include "KviIconManager.h"
 #include "KviLocale.h"
-
+#include "KviRegExp.h"
 #include "KviTalToolTip.h"
 
-#include <QRegExp>
 
 namespace KviKvsCoreCallbackCommands
 {
@@ -247,7 +246,7 @@ namespace KviKvsCoreCallbackCommands
 		vName->asString(szName);
 
 		// we allow only [\w:]+
-		QRegExp re("[\\w:]+");
+		KviRegExp re("[\\w:]+");
 		if(!re.exactMatch(szName))
 		{
 			KVSCCC_pContext->error(__tr2qs_ctx("Alias names can contain only letters, digits, underscores and '::' namespace separators", "kvs"));
@@ -1035,8 +1034,6 @@ namespace KviKvsCoreCallbackCommands
 
 	KVSCCC(privateimpl)
 	{
-		Q_UNUSED(__pSwitches);
-
 		kvs_hobject_t hObject;
 		QString szFunctionName;
 		KVSCCC_PARAMETERS_BEGIN

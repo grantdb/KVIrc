@@ -363,7 +363,7 @@ const kvi_wchar_t * KviIrcView::getTextLine(
 		nullptr                      ,nullptr                      ,nullptr                      ,nullptr                      ,
 		nullptr                      ,&&found_tab                  ,&&found_end_of_line          ,nullptr                      ,
 		nullptr                      ,&&found_command_escape       ,nullptr                      ,&&found_mirc_escape          ,
-		nullptr                      ,nullptr                      ,nullptr                      ,nullptr                      ,
+		nullptr                      ,&&found_mirc_escape          ,nullptr                      ,nullptr                      ,
 		nullptr                      ,nullptr                      ,&&found_mirc_escape          ,nullptr                      ,
 		nullptr                      ,nullptr                      ,nullptr                      ,nullptr                      ,
 		&&found_icon_escape          ,&&found_mirc_escape          ,nullptr                      ,&&found_mirc_escape          , // 000-031
@@ -584,7 +584,6 @@ found_tab:
 			APPEND_LAST_TEXT_BLOCK(data_ptr, p - data_ptr);
 			NEW_LINE_CHUNK(KviControlCodes::ArbitraryBreak);
 			data_ptr = p;
-			p++;
 		break;
 		case '\r':
 #ifdef COMPILE_USE_DYNAMIC_LABELS
@@ -750,6 +749,7 @@ found_icon_escape:
 		case KviControlCodes::Bold:
 		case KviControlCodes::Italic:
 		case KviControlCodes::Underline:
+		case KviControlCodes::Monospace:
 		case KviControlCodes::Reverse:
 		case KviControlCodes::Reset:
 #ifdef COMPILE_USE_DYNAMIC_LABELS
@@ -1299,12 +1299,12 @@ void KviIrcView::appendText(int iMsgType, const kvi_wchar_t * data_ptr, int iFla
 		// Looks like the user wants to keep the control codes in the log file: we just dump everything inside (including newlines...)
 		if(m_pLogFile && KVI_OPTION_MSGTYPE(iMsgType).logEnabled())
 		{
-			add2Log(QString::fromUtf16(data_ptr), datetime, iMsgType, true);
+			add2Log(QString::fromUtf16((char16_t *)data_ptr), datetime, iMsgType, true);
 		}
 		else if(m_pMasterView)
 		{
 			if(m_pMasterView->m_pLogFile && KVI_OPTION_MSGTYPE(iMsgType).logEnabled())
-				m_pMasterView->add2Log(QString::fromUtf16(data_ptr), datetime, iMsgType, true);
+				m_pMasterView->add2Log(QString::fromUtf16((char16_t *)data_ptr), datetime, iMsgType, true);
 		}
 	}
 

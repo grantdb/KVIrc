@@ -42,6 +42,7 @@
 #include "KviShortcut.h"
 #include "KviTalHBox.h"
 #include "KviTalToolTip.h"
+#include "KviRegExp.h"
 
 #include <QLabel>
 #include <QFileDialog>
@@ -60,8 +61,8 @@
 #include <QPushButton>
 #include <QFontMetrics>
 
-#include <ctype.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdlib>
 
 //This comes from KviApplication.cpp
 extern KviColorWindow * g_pColorWindow;
@@ -75,7 +76,7 @@ KviInput::KviInput(KviWindow * pPar, KviUserListView * pView)
 	setObjectName("input_widget");
 	m_pLayout = new QGridLayout(this);
 
-	m_pLayout->setMargin(0);
+	m_pLayout->setContentsMargins(0, 0, 0, 0);
 	m_pLayout->setSpacing(0);
 
 	m_pWindow = pPar;
@@ -94,7 +95,7 @@ KviInput::KviInput(KviWindow * pPar, KviUserListView * pView)
 
 	m_pButtonContainer = new KviTalHBox(this);
 	m_pButtonContainer->setSpacing(0);
-	m_pButtonContainer->setMargin(0);
+	m_pButtonContainer->setContentsMargins(0, 0, 0, 0);
 
 	m_pButtonContainer->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
 
@@ -307,7 +308,7 @@ void KviInput::multiLineEditorButtonToggled(bool bOn)
 		delete m_pHelpLabel;
 		m_pHelpLabel = nullptr;
 
-		szTmp.replace(QRegExp("[\a\f\n\r\v]"), QString(" "));
+		szTmp.replace(KviRegExp("[\a\f\n\r\v]"), QString(" "));
 		szTmp.replace('\t', QString(KVI_OPTION_UINT(KviOption_uintSpacesToExpandTabulationInput), ' ')); //expand tabs to spaces
 		m_pInputEditor->setText(szTmp);
 		m_pInputEditor->show();

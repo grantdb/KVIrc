@@ -37,13 +37,13 @@
 #include "KviMessageBox.h"
 #include "KviSelectors.h"
 #include "KviMiscUtils.h"
+#include "KviRegExp.h"
 #include "kvi_sourcesdate.h"
 
 #include <QTextEdit>
 #include <QLayout>
 #include <QPushButton>
 #include <QLineEdit>
-#include <QRegExp>
 #include <QMessageBox>
 #include <QDir>
 #include <QComboBox>
@@ -54,6 +54,7 @@
 #include <QBuffer>
 #include <QLabel>
 #include <QCheckBox>
+#include <QRegularExpressionValidator>
 
 SaveThemeDialog::SaveThemeDialog(QWidget * pParent)
     : KviTalWizard(pParent)
@@ -113,8 +114,8 @@ SaveThemeDialog::SaveThemeDialog(QWidget * pParent)
 
 	m_pThemeVersionEdit = new QLineEdit(pPage);
 	m_pThemeVersionEdit->setText(info.version());
-	QRegExp rx("\\d{1,2}\\.\\d{1,2}(\\.\\d{1,2})?");
-	QValidator * validator = new QRegExpValidator(rx, this);
+	KviRegExp rx(R"(\d{1,2}\.\d{1,2}(\.\d{1,2})?)");
+	QValidator * validator = new QRegularExpressionValidator(rx, this);
 	m_pThemeVersionEdit->setValidator(validator);
 
 	pLayout->addWidget(m_pThemeVersionEdit, 2, 1);
@@ -225,8 +226,7 @@ void SaveThemeDialog::imageSelectionChanged(const QString & szImagePath)
 		return;
 	}
 
-	QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected image!", "theme"),
-	    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+	QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected image!", "theme"));
 
 	m_pImageSelector->setSelection("");
 	m_pImageLabel->setPixmap(QPixmap());
@@ -247,8 +247,7 @@ void SaveThemeDialog::makeScreenshot()
 	g_pApp->getTmpFileName(szFileName, "screenshot.png");
 	if(!ThemeFunctions::makeKVIrcScreenshot(szFileName))
 	{
-		QMessageBox::critical(this, __tr2qs_ctx("Acquire Screenshot - KVIrc", "theme"), __tr2qs_ctx("Failed to make a theme screenshot.", "theme"),
-		    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::critical(this, __tr2qs_ctx("Acquire Screenshot - KVIrc", "theme"), __tr2qs_ctx("Failed to make a theme screenshot.", "theme"));
 		return;
 	}
 	m_pImageSelector->setSelection(szFileName);
@@ -263,8 +262,7 @@ bool SaveThemeDialog::saveTheme()
 	sto.setName(m_pThemeNameEdit->text());
 	if(sto.name().isEmpty())
 	{
-		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("You must choose a theme name.", "theme"), QMessageBox::Ok,
-		    QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("You must choose a theme name.", "theme"));
 		return false;
 	}
 
@@ -279,14 +277,13 @@ bool SaveThemeDialog::saveTheme()
 		sto.setVersion("1.0.0");
 
 	QString szSubdir = sto.name() + QString("-") + sto.version();
-	szSubdir.replace(QRegExp("[^a-zA-Z0-9_\\-.][^a-zA-Z0-9_\\-.]*"), "_");
+	szSubdir.replace(KviRegExp("[^a-zA-Z0-9_\\-.][^a-zA-Z0-9_\\-.]*"), "_");
 	sto.setDirectoryAndLocation(szSubdir, KviThemeInfo::User);
 
 	QString szAbsDir = sto.directory();
 	if(!KviFileUtils::makeDir(szAbsDir))
 	{
-		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Unable to create theme directory.", "theme"),
-		    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Unable to create theme directory.", "theme"));
 		return false;
 	}
 
@@ -294,8 +291,7 @@ bool SaveThemeDialog::saveTheme()
 	{
 		QString szErr = sto.lastError();
 		QString szMsg2 = QString(__tr2qs_ctx("Unable to save theme: %1", "theme")).arg(szErr);
-		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), szMsg2,
-		    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), szMsg2);
 		return false;
 	}
 	// write down the screenshot, if needed
@@ -304,8 +300,7 @@ bool SaveThemeDialog::saveTheme()
 	{
 		if(!KviTheme::saveScreenshots(sto, m_szScreenshotPath))
 		{
-			QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected screenshot image: please fix it", "theme"),
-			    QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+			QMessageBox::critical(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), __tr2qs_ctx("Failed to load the selected screenshot image: please fix it", "theme"));
 			setCurrentPage(m_pImageSelectionPage);
 			return false;
 		}
@@ -313,8 +308,7 @@ bool SaveThemeDialog::saveTheme()
 
 	QString szMsg = __tr2qs_ctx("Theme saved successfully to %1", "theme").arg(szAbsDir);
 
-	QMessageBox::information(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), szMsg, QMessageBox::Ok,
-	    QMessageBox::NoButton, QMessageBox::NoButton);
+	QMessageBox::information(this, __tr2qs_ctx("Save Current Theme - KVIrc", "theme"), szMsg);
 
 	return true;
 }

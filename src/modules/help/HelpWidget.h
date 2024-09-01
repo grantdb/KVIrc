@@ -27,11 +27,7 @@
 #include "HelpIndex.h"
 #include "kvi_settings.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-#include <QtWebKitWidgets/QWebView>
-#else
 #include <QTextBrowser>
-#endif
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QProgressBar>
@@ -48,45 +44,20 @@ public:
 	~HelpWidget();
 
 private:
-#ifdef COMPILE_WEBKIT_SUPPORT
-	QVBoxLayout * m_pLayout;
-	QToolBar * m_pToolBar;
-	QToolBar * m_pToolBarHighlight;
-	QLineEdit * m_pFindText;
-	QWebView * m_pTextBrowser;
-#else
 	QVBoxLayout * m_pLayout;
 	QToolBar * m_pToolBar;
 	QAction * m_pBackAction;
 	QAction * m_pForwardAction;
 	QTextBrowser * m_pTextBrowser;
-#endif
 	bool m_bIsStandalone;
 
 protected slots:
 	void showIndex();
-#ifdef COMPILE_WEBKIT_SUPPORT
-	void slotLoadFinished(bool ok);
-	void slotFindNext();
-	void slotFindPrev();
-	void slotZoomIn();
-	void slotZoomOut();
-	void slotTextChanged(const QString);
-	void slotCopy();
-	void slotShowHideFind();
-#endif
 public:
-#ifdef COMPILE_WEBKIT_SUPPORT
-	QWebView * textBrowser()
-	{
-		return m_pTextBrowser;
-	}
-#else
 	QTextBrowser * textBrowser()
 	{
 		return m_pTextBrowser;
 	}
-#endif
 };
 
 #endif //_HELPWIDGET_H_

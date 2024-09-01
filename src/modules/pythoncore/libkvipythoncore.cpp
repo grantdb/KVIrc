@@ -30,6 +30,7 @@
 #include "kvi_settings.h"
 #include "KviModule.h"
 #include "KviLocale.h"
+#include "KviRegExp.h"
 
 #ifdef COMPILE_PYTHON_SUPPORT
 #include "pythoncoreinterface.h"
@@ -136,7 +137,7 @@ bool KviPythonInterpreter::execute(QString szCode, QStringList & lArgs,
 	PyRun_SimpleString(szVarCode.toUtf8().data());
 
 	// clean "cr" from the python code (ticket #1028)
-	szCode.replace(QRegExp("\r\n?"), "\n");
+	szCode.replace(KviRegExp("\r\n?"), "\n");
 
 	int retVal = PyRun_SimpleString(szCode.toUtf8().data());
 
@@ -213,7 +214,9 @@ static bool pythoncore_module_init(KviModule *)
 {
 #ifdef COMPILE_PYTHON_SUPPORT
 	Py_Initialize();
+#if PY_VERSION_HEX < 0x03070000
 	PyEval_InitThreads();
+#endif
 
 	mainThreadState = PyEval_SaveThread();
 

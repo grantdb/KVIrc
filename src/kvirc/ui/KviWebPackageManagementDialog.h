@@ -27,16 +27,42 @@
 
 #include "kvi_settings.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-
 #include <QWidget>
+#include <QJsonObject>
+#include "KviTalListWidget.h"
 
 class QToolBar;
-class QVBoxLayout;
-class QWebView;
+class QToolButton;
 class QFile;
 class QProgressBar;
 class QUrl;
+class QTableWidget;
+class QMehu;
+
+class KviWebPackageListItem : public QObject, public KviTalListWidgetItem
+{
+	Q_OBJECT
+
+public:
+	KviWebPackageListItem(KviTalListWidget * pBox, QJsonObject obj, const QString & szBaseUrl);
+	~KviWebPackageListItem() {};
+
+protected:
+	QString m_szName;
+	QString m_szVersion;
+	QString m_szAuthor;
+	QString m_szDesc;
+	QString m_szScreen;
+	QString m_szDownload;
+
+	void downloadIcon(const QString & szIconUrl);
+public:
+	const QString & name() { return m_szName; };
+	const QString & version() { return m_szVersion; };
+	const QString & download() { return m_szDownload; };
+public slots:
+	void showPopupImage();
+};
 
 ///
 /// \class KviWebPackageManagementDialog
@@ -52,40 +78,40 @@ public:
 	///
 	/// Creates an instance of KviWebPackageManagementDialog
 	///
-	KviWebPackageManagementDialog(QWidget * pParent = NULL);
+	KviWebPackageManagementDialog(QWidget * pParent = nullptr);
 
 	///
 	/// Destroys the instance of KviWebPackageManagementDialog
 	/// and frees all the relevant resources
 	///
-	virtual ~KviWebPackageManagementDialog();
+	~KviWebPackageManagementDialog();
 
 private:
 	QToolBar * m_pToolBar;
-	QVBoxLayout * m_pLayout;
-	QWebView * m_pWebView;
+	KviTalIconAndRichTextItemDelegate * m_pItemDelegate;
+	KviTalListWidget * m_pListWidget;
 	bool m_bBusy;
 	QProgressBar * m_pProgressBar;
 	QString m_szPackagePageUrl;
 	QString m_szLocalTemporaryPath;
+	QMenu * m_pContextPopup;
+	QToolButton * m_pPreviewButton;
+	QToolButton * m_pDeleteButton;
 
 protected:
 	void setPackagePageUrl(const QString & szUrl);
-	virtual void showEvent(QShowEvent * e);
+	void showEvent(QShowEvent * e) override;
 
 	virtual bool packageIsInstalled(const QString & szId, const QString & szVersion) = 0;
 	virtual bool installPackage(const QString & szPath, QString & szError) = 0;
 
 protected slots:
-
-	void slotLoadFinished(bool ok);
-	void slotLoadProgress(int iProgress);
+	void enableDisableButtons();
+	void contextMenuRequested(const QPoint & pos);
+	void showItemPreview();
+	void downloadItem();
 	void slotDataTransferProgress(qint64 iDone, qint64 iTotal);
-	void slotCommandFinished();
-	void slotLinkClicked(const QUrl & url);
-
+	void slotDownloadFinished();
 }; // class KviWebPackageManagementDialog
-
-#endif //COMPILE_WEBKIT_SUPPORT
 
 #endif //!_KviWebPackageManagementDialog_h_

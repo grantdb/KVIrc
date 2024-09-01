@@ -36,15 +36,17 @@
 class KviChannelWindow;
 class KviIrcConnection;
 class KviThemedLabel;
+class KviTalHBox;
 class QComboBox;
 class QMenu;
 class QPushButton;
+class QStackedWidget;
 
 class KVIRC_API KviTopicListBoxItemDelegate : public KviTalIconAndRichTextItemDelegate
 {
 	Q_OBJECT
 public:
-	KviTopicListBoxItemDelegate(QAbstractItemView * pWidget = 0);
+	KviTopicListBoxItemDelegate(QAbstractItemView * pWidget = nullptr);
 	~KviTopicListBoxItemDelegate();
 
 public:
@@ -55,7 +57,7 @@ public:
 class KVIRC_API KviTopicListBoxItem : public KviTalListWidgetText
 {
 public:
-	KviTopicListBoxItem(KviTalListWidget * pListBox = 0, const QString & text = QString());
+	KviTopicListBoxItem(KviTalListWidget * pListBox = nullptr, const QString & text = QString());
 	~KviTopicListBoxItem();
 
 public:
@@ -83,6 +85,8 @@ private:
 	QMenu * m_pContextPopup;
 	QAbstractItemDelegate * m_pItemDelegate;
 	KviThemedLabel * m_pLabel;
+	KviTalHBox * m_pInputBox;
+	QStackedWidget * m_pLabelAndInputBoxStack;
 	KviInputEditor * m_pInput;
 	KviTalListWidget * m_pCompletionBox;
 	KviChannelWindow * m_pKviChannelWindow;
@@ -97,10 +101,10 @@ protected:
 	void updateToolTip();
 	void deactivate();
 	void iconButtonClicked();
-	virtual bool eventFilter(QObject * o, QEvent * e);
-	virtual void mousePressEvent(QMouseEvent * e);
-	virtual void keyPressEvent(QKeyEvent * e);
-	virtual void resizeEvent(QResizeEvent * e);
+	bool eventFilter(QObject * o, QEvent * e) override;
+	void mousePressEvent(QMouseEvent * e) override;
+	void keyPressEvent(QKeyEvent * e) override;
+	void resizeEvent(QResizeEvent * e) override;
 
 public:
 	void insertChar(QChar c);
@@ -115,7 +119,7 @@ public:
 	const QString & topic() { return m_szTopic; };
 	const QString & topicSetBy() { return m_szSetBy; };
 	const QString & topicSetAt() { return m_szSetAt; };
-	virtual QSize sizeHint() const;
+	QSize sizeHint() const override;
 	void applyOptions();
 
 	static void paintColoredText(QPainter * p, QString szText, const QPalette & palette, const QRect & rect);

@@ -66,7 +66,7 @@ KviQueryWindow::KviQueryWindow(KviConsoleWindow * lpConsole, const QString & szN
 	//m_pTopSplitter = new KviTalSplitter(QSplitter::Horizontal,this,"top_splitter");
 	m_pButtonBox = new KviTalHBox(this);
 	m_pButtonBox->setSpacing(0);
-	m_pButtonBox->setMargin(0);
+	m_pButtonBox->setContentsMargins(0, 0, 0, 0);
 	m_pLabel = new KviThemedLabel(m_pButtonBox, this, "query_label");
 	updateLabelText();
 	m_pButtonBox->setStretchFactor(m_pLabel, 1);
@@ -200,7 +200,7 @@ QString KviQueryWindow::getInfoLabelText()
 
 				szTmp += "\n";
 
-				if(connection()->getCommonChannels(m_szName, szChans, 0))
+				if(connection()->getCommonChannels(m_szName, szChans, false))
 					szTmp += __tr2qs("Common channels: %2").arg(szChans);
 				else
 					szTmp += __tr2qs("No common channels");
@@ -239,7 +239,7 @@ void KviQueryWindow::getBaseLogFileName(QString & szBuffer)
 		szBuffer = windowName();
 		szBuffer += ".";
 		if(context())
-			szBuffer += console()->context()->id();
+			szBuffer += QString::number(console()->context()->id());
 		else
 			szBuffer += "0";
 	}
@@ -629,7 +629,7 @@ void KviQueryWindow::ownMessage(const QString & szBuffer, bool bUserFeedback)
 
 			// first part (optimization): quickly find an high index that is _surely_lesser_
 			// than the correct one
-			while(1)
+			while(true)
 			{
 				iC++;
 				szTmp = pEncoder->fromUnicode(szTmpBuffer.left(iPos));
@@ -647,7 +647,7 @@ void KviQueryWindow::ownMessage(const QString & szBuffer, bool bUserFeedback)
 
 			// now, do it the simple way: increment our index until we perfectly fit into the
 			// available space
-			while(1)
+			while(true)
 			{
 				iC++;
 
@@ -741,7 +741,7 @@ void KviQueryWindow::ownAction(const QString & szBuffer)
 #ifdef COMPILE_CRYPT_SUPPORT
 	if(cryptSessionInfo() && cryptSessionInfo()->m_bDoEncrypt)
 	{
-		if(szTmpBuffer[0] != KviControlCodes::CryptEscape)
+		if(szTmpBuffer[0].unicode() != KviControlCodes::CryptEscape)
 		{
 			KviCString szEncrypted;
 			cryptSessionInfo()->m_pEngine->setMaxEncryptLen(iMaxMsgLen);

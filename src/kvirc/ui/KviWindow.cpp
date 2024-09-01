@@ -63,7 +63,6 @@
 #include <QDateTime>
 #include <QTextCodec>
 #include <QPushButton>
-#include <QDesktopWidget>
 #include <QVariant>
 #include <QMessageBox>
 #include <QEvent>
@@ -141,6 +140,9 @@ KviWindow::KviWindow(Type eType, const QString & szName, KviConsoleWindow * lpCo
 	setFocusPolicy(Qt::StrongFocus);
 	connect(g_pApp, SIGNAL(reloadImages()), this, SLOT(reloadImages()));
 
+	// set name of the app desktop file; used by wayland to load the window icon
+	QGuiApplication::setDesktopFileName("net.kvirc.KVIrc" KVIRC_VERSION_MAJOR);
+
 	setAttribute(Qt::WA_InputMethodEnabled, true);
 }
 
@@ -211,9 +213,8 @@ bool KviWindow::hasAttention(AttentionLevel eLevel)
 
 void KviWindow::demandAttention()
 {
-	WId windowId = isDocked() ? g_pMainWindow->winId() : winId();
-
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
+	[[maybe_unused]] WId windowId = isDocked() ? g_pMainWindow->winId() : winId();
 	FLASHWINFO fwi;
 	fwi.cbSize = sizeof(fwi);
 	fwi.hwnd = (HWND)windowId;
@@ -221,8 +222,8 @@ void KviWindow::demandAttention()
 	fwi.uCount = 20;
 	fwi.dwTimeout = 500;
 	FlashWindowEx(&fwi);
-#elif defined(COMPILE_KDE_SUPPORT)
-	KWindowSystem::demandAttention(windowId, true);
+#else
+	g_pApp->alert(g_pMainWindow, 10000);
 #endif
 }
 
@@ -537,7 +538,7 @@ void KviWindow::getDefaultLogFileName(QString & szBuffer, QDate date, bool bGzip
 			szDate = date.toString(Qt::ISODate);
 			break;
 		case 2:
-			szDate = date.toString(Qt::SystemLocaleShortDate);
+			szDate = QLocale().toString(date, QLocale::ShortFormat);
 			break;
 		case 0:
 		default:
@@ -1481,10 +1482,10 @@ enough:
 				static int iSpaceCount = -1;
 				if (iSpaceCount == -1)
 				{
-					QString szTypicalDate = QDateTime::currentDateTime().toString(Qt::SystemLocaleShortDate);
+					QString szTypicalDate = QLocale().toString(QDateTime::currentDateTime(), QLocale::ShortFormat);
 					iSpaceCount = szTypicalDate.count(' ');
 				}
-				date = QDateTime::fromString(szLine.section(' ', 0, iSpaceCount), Qt::SystemLocaleShortDate);
+				date = QLocale().toDateTime(szLine.section(' ', 0, iSpaceCount), QLocale::ShortFormat);
 				if (date.isValid())
 				{
 					szLine = szLine.section(' ', iSpaceCount+1);

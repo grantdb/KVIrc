@@ -51,14 +51,14 @@ public:
 	* \param pcName the name of the groupbox
 	* \return KviTalGroupBox
 	*/
-	KviTalGroupBox(QWidget * pParent, char * pcName = 0);
+	KviTalGroupBox(QWidget * pParent, char * pcName = nullptr);
 
 	/**
 	* \brief Constructs the groupbox object
 	* \param pParent The parent object
 	* \return KviTalGroupBox
 	*/
-	KviTalGroupBox(QWidget * pParent = 0);
+	KviTalGroupBox(QWidget * pParent = nullptr);
 
 	/**
 	* \brief Constructs the groupbox object
@@ -66,7 +66,7 @@ public:
 	* \param pParent The parent object
 	* \return KviTalGroupBox
 	*/
-	KviTalGroupBox(const QString & szTitle, QWidget * pParent = 0);
+	KviTalGroupBox(const QString & szTitle, QWidget * pParent = nullptr);
 
 	/**
 	* \brief Constructs the groupbox object
@@ -74,7 +74,7 @@ public:
 	* \param pParent The parent object
 	* \return KviTalGroupBox
 	*/
-	KviTalGroupBox(Qt::Orientation orientation, QWidget * pParent = 0);
+	KviTalGroupBox(Qt::Orientation orientation, QWidget * pParent = nullptr);
 
 	/**
 	* \brief Constructs the groupbox object
@@ -83,7 +83,7 @@ public:
 	* \param pParent The parent object
 	* \return KviTalGroupBox
 	*/
-	KviTalGroupBox(Qt::Orientation orientation, const QString & szTitle, QWidget * pParent = 0);
+	KviTalGroupBox(Qt::Orientation orientation, const QString & szTitle, QWidget * pParent = nullptr);
 
 	/**
 	* \brief Destroys the groupbox object
@@ -103,7 +103,7 @@ public:
 	void setInsideMargin(int iMargin)
 	{
 		if(layout())
-			layout()->setMargin(iMargin);
+			layout()->setContentsMargins(iMargin, iMargin, iMargin, iMargin);
 	};
 
 	/**
@@ -124,7 +124,7 @@ public:
 	int insideMargin()
 	{
 		if(layout())
-			return layout()->margin();
+			return layout()->contentsMargins().top();
 		return 0;
 	};
 
@@ -161,7 +161,7 @@ public:
 	void setLayout(QLayout * newLayout);
 
 protected:
-	virtual void childEvent(QChildEvent * e);
+	void childEvent(QChildEvent * e) override;
 };
 
 #endif // _KVI_TAL_GROUPBOX_H_

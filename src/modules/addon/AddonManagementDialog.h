@@ -54,9 +54,7 @@ public:
 	KviKvsScriptAddon * addon() { return m_pAddon; };
 };
 
-#ifdef COMPILE_WEBKIT_SUPPORT
 class WebAddonInterfaceDialog;
-#endif //COMPILE_WEBKIT_SUPPORT
 
 class AddonManagementDialog : public QWidget
 {
@@ -74,9 +72,7 @@ protected:
 	QToolButton * m_pHelpButton;
 	QToolButton * m_pPackButton;
 	QToolButton * m_pUninstallButton;
-#ifdef COMPILE_WEBKIT_SUPPORT
 	QPointer<WebAddonInterfaceDialog> m_pWebInterfaceDialog;
-#endif //COMPILE_WEBKIT_SUPPORT
 public:
 	static AddonManagementDialog * instance() { return m_pInstance; };
 	static void display(bool bTopLevel);
@@ -84,7 +80,7 @@ public:
 
 protected:
 	void fillListView();
-	virtual void closeEvent(QCloseEvent * e);
+	void closeEvent(QCloseEvent * e) override;
 protected slots:
 	void currentChanged(QListWidgetItem * i, QListWidgetItem *);
 	void closeClicked();
@@ -94,6 +90,7 @@ protected slots:
 	void uninstallScript();
 	void getMoreScripts();
 	void installScript();
+	void webInterfaceDialogDestroyed();
 	virtual void reject();
 };
 

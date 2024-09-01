@@ -54,11 +54,11 @@
 extern KVIRC_API QPixmap * g_pShadedChildGlobalDesktopBackground;
 #endif
 
-typedef struct _UrlDlgList
+struct UrlDlgList
 {
 	UrlDialog * dlg;
 	int menu_id;
-} UrlDlgList;
+};
 
 const char * g_pUrlListFilename = "/list.kviurl";
 const char * g_pBanListFilename = "/list.kviban";
@@ -84,23 +84,9 @@ UrlDialogTreeWidget::UrlDialogTreeWidget(QWidget * par)
 {
 }
 
-void UrlDialogTreeWidget::mousePressEvent(QMouseEvent * e)
-{
-	if(e->button() == Qt::RightButton)
-	{
-		QTreeWidgetItem * i = itemAt(e->pos());
-		if(i)
-			emit rightButtonPressed(i, QCursor::pos());
-		else
-			emit contextMenuRequested(QCursor::pos());
-	}
-	QTreeWidget::mousePressEvent(e);
-}
-
 void UrlDialogTreeWidget::paintEvent(QPaintEvent * event)
 {
 	QPainter * p = new QPainter(viewport());
-	QStyleOptionViewItem option = viewOptions();
 	QRect rect = event->rect();
 
 #ifdef COMPILE_PSEUDO_TRANSPARENCY
@@ -153,9 +139,9 @@ UrlDialog::UrlDialog(std::unordered_set<KviUrl *>)
 	labels << __tr2qs("URL") << __tr2qs("Window") << __tr2qs("Count") << __tr2qs("Timestamp");
 	m_pUrlList->setHeaderLabels(labels);
 
-	connect(m_pUrlList, SIGNAL(itemDoubleClicked(QTreeWidgetItem *, int)), SLOT(dblclk_url(QTreeWidgetItem *, int)));
-	connect(m_pUrlList, SIGNAL(rightButtonPressed(QTreeWidgetItem *, const QPoint &)), SLOT(popup(QTreeWidgetItem *, const QPoint &)));
-	connect(m_pUrlList, SIGNAL(contextMenuRequested(const QPoint &)), SLOT(contextMenu(const QPoint &)));
+	connect(m_pUrlList, SIGNAL(itemActivated(QTreeWidgetItem *, int)), SLOT(activate(QTreeWidgetItem *, int)));
+	connect(m_pUrlList, SIGNAL(customContextMenuRequested(const QPoint &)), SLOT(contextMenu(const QPoint &)));
+	m_pUrlList->setContextMenuPolicy(Qt::CustomContextMenu);
 	m_pUrlList->setFocusPolicy(Qt::StrongFocus);
 	m_pUrlList->setFocus();
 }
@@ -164,6 +150,8 @@ void UrlDialog::config()
 {
 	if(!g_pConfigDialog)
 		g_pConfigDialog = new ConfigDialog();
+	else
+		g_pConfigDialog->show();
 }
 
 void UrlDialog::help()
@@ -195,11 +183,16 @@ void UrlDialog::close_slot()
 	close();
 }
 
+void UrlDialog::open()
+{
+	open_url(m_szUrl);
+}
+
 void UrlDialog::remove()
 {
 	if(!m_pUrlList->currentItem())
 	{
-		QMessageBox::warning(nullptr, __tr2qs("Entry Selection - KVIrc"), __tr2qs("Must select a URL entry from the list to remove it."), QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::warning(nullptr, __tr2qs("Entry Selection - KVIrc"), __tr2qs("Must select a URL entry from the list to remove it."));
 		return;
 	}
 
@@ -218,41 +211,48 @@ void UrlDialog::findtext()
 {
 }
 
-void UrlDialog::dblclk_url(QTreeWidgetItem * item, int)
+void UrlDialog::open_url(QString szUrl)
 {
 	QString cmd = "openurl ";
-	QString szUrl = item->text(0);
 	KviQString::escapeKvs(&szUrl);
 	cmd.append(szUrl);
 	KviKvsScript::run(cmd, this);
 }
 
-void UrlDialog::popup(QTreeWidgetItem * item, const QPoint & point)
+void UrlDialog::activate(QTreeWidgetItem * item, int)
 {
-	m_szUrl = item->text(0);
-	QMenu p("menu", nullptr);
-	p.addAction(__tr2qs("&Remove"), this, SLOT(remove()));
-
-	p.addSeparator();
-	m_pListPopup = new QMenu("list", nullptr);
-
-	for(auto & w : g_pMainWindow->windowList())
-	{
-		if((w->type() == KviWindow::Channel) || (w->type() == KviWindow::Query) || (w->type() == KviWindow::DccChat))
-		{
-			m_pListPopup->addAction(w->plainTextCaption());
-		}
-	}
-	p.addAction(__tr2qs("&Say to Window"))->setMenu(m_pListPopup);
-	connect(m_pListPopup, SIGNAL(triggered(QAction *)), this, SLOT(sayToWin(QAction *)));
-	p.exec(point);
+	open_url(item->text(0));
 }
 
 void UrlDialog::contextMenu(const QPoint & point)
 {
+	QTreeWidgetItem * item = m_pUrlList->itemAt(point);
+
 	QMenu p("contextmenu", nullptr);
+	if (item)
+	{
+		m_szUrl = item->text(0);
+		p.setDefaultAction(p.addAction(__tr2qs("&Open"), this, SLOT(open())));
+		p.addAction(__tr2qs("&Remove"), this, SLOT(remove()));
+
+		p.addSeparator();
+		m_pListPopup = new QMenu("list", nullptr);
+
+		for(auto & w : g_pMainWindow->windowList())
+		{
+			if((w->type() == KviWindow::Channel) || (w->type() == KviWindow::Query) || (w->type() == KviWindow::DccChat))
+			{
+				m_pListPopup->addAction(w->plainTextCaption());
+			}
+		}
+		p.addAction(__tr2qs("&Say to Window"))->setMenu(m_pListPopup);
+		connect(m_pListPopup, SIGNAL(triggered(QAction *)), this, SLOT(sayToWin(QAction *)));
+
+		p.addSeparator();
+	}
+
 	p.addAction(__tr2qs("Configure"), this, SLOT(config()));
-	p.exec(point);
+	p.exec(m_pUrlList->viewport()->mapToGlobal(point));
 }
 
 void UrlDialog::sayToWin(QAction * act)
@@ -270,7 +270,7 @@ void UrlDialog::sayToWin(QAction * act)
 	}
 	else
 	{
-		QMessageBox::warning(nullptr, __tr2qs("Window Not Found - KVIrc"), __tr2qs("Window not found."), QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::warning(nullptr, __tr2qs("Window Not Found - KVIrc"), __tr2qs("Window not found."));
 	}
 }
 
@@ -288,10 +288,10 @@ void UrlDialog::addUrl(QString url, QString window, QString count, QString times
 	UrlItem->setText(2, count);
 	UrlItem->setText(3, timestamp);
 
-	UrlItem->setForeground(0, KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_URL).fore()));
-	UrlItem->setForeground(1, KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
-	UrlItem->setForeground(2, KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
-	UrlItem->setForeground(3, KVI_OPTION_MIRCCOLOR(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
+	UrlItem->setForeground(0, getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_URL).fore()));
+	UrlItem->setForeground(1, getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
+	UrlItem->setForeground(2, getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
+	UrlItem->setForeground(3, getMircColor(KVI_OPTION_MSGTYPE(KVI_OUT_NONE).fore()));
 
 	m_pUrlList->resizeColumnToContents(0);
 	m_pUrlList->resizeColumnToContents(3);
@@ -458,7 +458,7 @@ void BanFrame::removeBan()
 
 	if(!m_pBanList->currentItem()->isSelected())
 	{
-		QMessageBox::warning(nullptr, __tr2qs("Entry Selection - KVIrc"), __tr2qs("Must select a ban entry from the list to remove it."), QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
+		QMessageBox::warning(nullptr, __tr2qs("Entry Selection - KVIrc"), __tr2qs("Must select a ban entry from the list to remove it."));
 		return;
 	}
 	QString item(m_pBanList->currentItem()->text());
@@ -498,14 +498,14 @@ void saveUrlList()
 
 	QTextStream stream(&file);
 
-	stream << g_List.size() << endl;
+	stream << g_List.size() << Qt::endl;
 
 	for(auto tmp : g_List)
 	{
-		stream << tmp->url << endl;
-		stream << tmp->window << endl;
-		stream << tmp->count << endl;
-		stream << tmp->timestamp << endl;
+		stream << tmp->url << Qt::endl;
+		stream << tmp->window << Qt::endl;
+		stream << tmp->count << Qt::endl;
+		stream << tmp->timestamp << Qt::endl;
 	}
 	file.flush();
 	file.close();
@@ -568,10 +568,10 @@ void saveBanList()
 
 	QTextStream stream(&file);
 
-	stream << g_BanList.size() << endl;
+	stream << g_BanList.size() << Qt::endl;
 	for(auto tmp : g_BanList)
 	{
-		stream << *tmp << endl;
+		stream << *tmp << Qt::endl;
 	}
 	file.flush();
 	file.close();
@@ -748,7 +748,7 @@ bool urllist_module_event_onUrl(KviKvsModuleEventCall * c)
 		QString tmpTimestamp;
 		QDate d = QDate::currentDate();
 		QString date;
-		date.sprintf("%d-%d%d-%d%d", d.year(), d.month() / 10, d.month() % 10, d.day() / 10, d.day() % 10);
+		date = QString::asprintf("%d-%d%d-%d%d", d.year(), d.month() / 10, d.month() % 10, d.day() / 10, d.day() % 10);
 		tmpTimestamp = "[" + date + "]" + " [";
 		tmpTimestamp += QTime::currentTime().toString() + "]";
 		tmp->url = szUrl;

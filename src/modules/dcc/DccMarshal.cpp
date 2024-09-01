@@ -32,7 +32,7 @@
 #include "kvi_socket.h"
 #include "KviFileUtils.h"
 
-#include <stdlib.h> //for exit()
+#include <cstdlib> //for exit()
 
 #include <QTimer>
 
@@ -601,6 +601,10 @@ void DccMarshal::doSSLHandshake(int)
 		emit error(KviError::InternalError);
 		return; // ops ?
 	}
+
+	// Enable the use of Anonymous DH cipher suites, to permit connection without a certificate
+	// Note: this is considered NOT SECURE since at least 2015 (Logjam), but it's still better than plain text
+	m_pSSL->enableADHCiphers();
 
 	KviSSL::Result r = m_bOutgoing ? m_pSSL->connect() : m_pSSL->accept();
 

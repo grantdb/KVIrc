@@ -270,8 +270,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(array)
 	{
-		Q_UNUSED(__pContext);
-
 		KviKvsArray * a = new KviKvsArray();
 
 		for(KviKvsVariant * v = KVSCF_pParams->first(); v; v = KVSCF_pParams->next())
@@ -351,9 +349,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(b)
 	{
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		KVSCF_pRetBuffer->setString(QString(QChar(KviControlCodes::Bold)));
 		return true;
 	}
@@ -793,9 +788,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(countStatusBarItems)
 	{
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		if(g_pMainWindow->mainStatusBar())
 		{
 			QList<QWidget *> widgets = g_pMainWindow->mainStatusBar()->findChildren<QWidget *>();
@@ -824,9 +816,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(cr)
 	{
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		KVSCF_pRetBuffer->setString(QString(QChar('\r')));
 		return true;
 	}
@@ -914,7 +903,7 @@ namespace KviKvsCoreFunctions
 		QChar cDiv;
 
 		if(KVSCF_pParams->count() > 1)
-			qDt.setTime_t(iTime);
+			qDt.setSecsSinceEpoch(iTime);
 		else
 			qDt = QDateTime::currentDateTime();
 
@@ -1027,7 +1016,7 @@ namespace KviKvsCoreFunctions
 					szFmtTime += qDt.toString("hh:mm");
 					break;
 				case 's': // seconds since epoch (currently 1970-01-01 00:00:00 UTC)
-					szFmtTime += QString::number(qDt.toTime_t());
+					szFmtTime += QString::number(qDt.toSecsSinceEpoch());
 					break;
 				case 'S': // seconds (00-60)
 					cDiv = '0';
@@ -1172,9 +1161,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(falseCKEYWORDWORKAROUND)
 	{
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		KVSCF_pRetBuffer->setBoolean(false);
 		return true;
 	}
@@ -1263,9 +1249,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(firstConnectedConsole)
 	{
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		KviConsoleWindow * c = g_pApp->topmostConnectedConsole();
 		KVSCF_pRetBuffer->setInteger(c ? c->numericId() : 0);
 		return true;
@@ -1296,8 +1279,6 @@ namespace KviKvsCoreFunctions
 
 	KVSCF(flatten)
 	{
-		Q_UNUSED(__pContext);
-
 		KviKvsArray * a = new KviKvsArray();
 		KVSCF_pRetBuffer->setArray(a);
 		unsigned int uIdx = 0;

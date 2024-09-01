@@ -18,6 +18,8 @@ preinstalled.kvc
 .directory
 *.ssexwsp
 *.ssexwsp.user
+*.c3workspace
+*.c3workspace.user
 *.sublime-*
 \#*\#
 .\#*
@@ -33,7 +35,6 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-[Ll]og/
 
 # Visual Studio cache/options directory
 .vs/

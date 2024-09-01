@@ -55,6 +55,8 @@
 #include "KviPointerHashTable.h"
 #include "KviTalToolTip.h"
 #include "KviIrcNetwork.h"
+#include "KviSASL.h"
+#include "KviRegExp.h"
 
 #include <QLineEdit>
 #include <QCursor>
@@ -164,7 +166,7 @@ IrcNetworkDetailsWidget::IrcNetworkDetailsWidget(QWidget * par, KviIrcNetwork * 
 	pPropertiesBoxLayout->addWidget(l, 2, 0);
 
 	m_pNickEditor = new QLineEdit(gbox);
-	QValidator * v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*", Qt::CaseSensitive), gbox);
+	QValidator * v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*", KviRegExp::CaseSensitive), gbox);
 	m_pNickEditor->setValidator(v);
 	m_pNickEditor->setText(n->nickName());
 	pPropertiesBoxLayout->addWidget(m_pNickEditor, 2, 1);
@@ -176,7 +178,7 @@ IrcNetworkDetailsWidget::IrcNetworkDetailsWidget(QWidget * par, KviIrcNetwork * 
 	pPropertiesBoxLayout->addWidget(l, 3, 0);
 
 	m_pAlternativeNickEditor = new QLineEdit(gbox);
-	v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*", Qt::CaseSensitive), gbox);
+	v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*", KviRegExp::CaseSensitive), gbox);
 	m_pAlternativeNickEditor->setValidator(v);
 	m_pAlternativeNickEditor->setText(n->alternativeNickName());
 	pPropertiesBoxLayout->addWidget(m_pAlternativeNickEditor, 3, 1);
@@ -581,7 +583,7 @@ IrcServerDetailsWidget::IrcServerDetailsWidget(QWidget * par, KviIrcServer * s)
 	pPropertiesBoxLayout->addWidget(l, 2, 0);
 
 	m_pNickEditor = new QLineEdit(gbox);
-	QValidator * v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*"), gbox);
+	QValidator * v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*"), gbox);
 	m_pNickEditor->setValidator(v);
 	m_pNickEditor->setText(s->nickName());
 	pPropertiesBoxLayout->addWidget(m_pNickEditor, 2, 1);
@@ -595,7 +597,7 @@ IrcServerDetailsWidget::IrcServerDetailsWidget(QWidget * par, KviIrcServer * s)
 	pPropertiesBoxLayout->addWidget(l, 3, 0);
 
 	m_pAlternativeNickEditor = new QLineEdit(gbox);
-	v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*"), gbox);
+	v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*"), gbox);
 	m_pAlternativeNickEditor->setValidator(v);
 	m_pAlternativeNickEditor->setText(s->alternativeNickName());
 	pPropertiesBoxLayout->addWidget(m_pAlternativeNickEditor, 3, 1);
@@ -901,19 +903,33 @@ IrcServerDetailsWidget::IrcServerDetailsWidget(QWidget * par, KviIrcServer * s)
 
 	m_pEnableSASLCheck->setChecked(s->enabledSASL());
 
-	l = new QLabel(__tr2qs_ctx("SASL nickname:", "options"), pSASLGroup);
+	l = new QLabel(__tr2qs_ctx("SASL method:", "options"), pSASLGroup);
 	pSASLLayout->addWidget(l, 1, 0);
+	m_pSaslMethodComboBox = new QComboBox(pSASLGroup);
+	m_pSaslMethodComboBox->setDuplicatesEnabled(false);
+	for(auto&& method : KviSASL::supportedMethods())
+		m_pSaslMethodComboBox->addItem(method);
+	KviTalToolTip::add(m_pSaslMethodComboBox, __tr2qs_ctx("Select which SASL method you want to use to authenticate with.<br><br>"
+	                                                      "EXTERNAL will fallback to PLAIN if a non-SSL connection is used or no .pem file is loaded.", "options"));
+	pSASLLayout->addWidget(m_pSaslMethodComboBox, 1, 1);
+
+	int index = m_pSaslMethodComboBox->findText(s->saslMethod());
+	if(index != -1)
+		m_pSaslMethodComboBox->setCurrentIndex(index);
+
+	l = new QLabel(__tr2qs_ctx("SASL nickname:", "options"), pSASLGroup);
+	pSASLLayout->addWidget(l, 2, 0);
 	m_pSaslNickEditor = new QLineEdit(pSASLGroup);
 	m_pSaslNickEditor->setText(s->saslNick());
-	KviTalToolTip::add(m_pSaslNickEditor, __tr2qs_ctx("If you want to enable SASL authentication, insert your nickname here.", "options"));
-	pSASLLayout->addWidget(m_pSaslNickEditor, 1, 1);
+	KviTalToolTip::add(m_pSaslNickEditor, __tr2qs_ctx("If you want to enable SASL authentication, insert your nickname here. (Not required for EXTERNAL)", "options"));
+	pSASLLayout->addWidget(m_pSaslNickEditor, 2, 1);
 
 	l = new QLabel(__tr2qs_ctx("SASL password:", "options"), pSASLGroup);
-	pSASLLayout->addWidget(l, 2, 0);
-	m_pSaslPassEditor = new KviPasswordLineEdit(pSASLGroup); // <---- ?????
+	pSASLLayout->addWidget(l, 3, 0);
+	m_pSaslPassEditor = new KviPasswordLineEdit(pSASLGroup);
 	m_pSaslPassEditor->setText(s->saslPass());
-	KviTalToolTip::add(m_pSaslPassEditor, __tr2qs_ctx("If you want to enable SASL authentication, insert your password here.", "options"));
-	pSASLLayout->addWidget(m_pSaslPassEditor, 2, 1);
+	KviTalToolTip::add(m_pSaslPassEditor, __tr2qs_ctx("If you want to enable SASL authentication, insert your password here. (Not required for EXTERNAL)", "options"));
+	pSASLLayout->addWidget(m_pSaslPassEditor, 3, 1);
 
 	pSASLGroup->setEnabled(s->enabledCAP());
 	connect(m_pEnableCAPCheck, SIGNAL(toggled(bool)), pSASLGroup, SLOT(setEnabled(bool)));
@@ -1115,10 +1131,11 @@ void IrcServerDetailsWidget::fillData(KviIrcServer * s)
 	if(m_pEnableSTARTTLSCheck)
 		s->setEnabledSTARTTLS(m_pEnableSTARTTLSCheck->isChecked());
 
+	s->setSaslMethod(m_pSaslMethodComboBox->currentText());
 	s->setSaslNick(m_pSaslNickEditor->text());
 	s->setSaslPass(m_pSaslPassEditor->text());
 	if(m_pEnableSASLCheck)
-		s->setEnabledSASL(m_pEnableSASLCheck->isChecked() && !m_pSaslNickEditor->text().isEmpty() && !m_pSaslPassEditor->text().isEmpty());
+		s->setEnabledSASL(m_pEnableSASLCheck->isChecked() && ((!m_pSaslNickEditor->text().isEmpty() && !m_pSaslPassEditor->text().isEmpty()) || (m_pSaslMethodComboBox->currentText() == QStringLiteral("EXTERNAL"))));
 	if(m_pIdEditor)
 		s->setId(m_pIdEditor->text());
 	if(s->id().isEmpty())
@@ -1291,7 +1308,7 @@ OptionsWidget_servers::OptionsWidget_servers(QWidget * parent)
 	addWidgetToLayout(m_pFilterLabel, 0, 0, 0, 0);
 
 	m_pFilterEdit = new QLineEdit(this);
-	connect(m_pFilterEdit, SIGNAL(textEdited(const QString &)), this, SLOT(filterTextEdited(const QString &)));
+	connect(m_pFilterEdit, SIGNAL(textEdited(const QString &)), this, SLOT(updateFilter()));
 	KviTalToolTip::add(m_pFilterEdit, __tr2qs_ctx("If you are searching for a specific server or network, you can insert its name to filter the servers in the list", "options"));
 	addWidgetToLayout(m_pFilterEdit, 1, 0, 1, 0);
 
@@ -1301,7 +1318,7 @@ OptionsWidget_servers::OptionsWidget_servers(QWidget * parent)
 	m_pShowFavoritesOnlyButton->setChecked(KVI_OPTION_BOOL(KviOption_boolShowFavoriteServersOnly));
 	KviTalToolTip::add(m_pShowFavoritesOnlyButton, __tr2qs_ctx("If this option is enabled, only servers you have favorited will be displayed", "options"));
 	addWidgetToLayout(m_pShowFavoritesOnlyButton, 3, 0, 3, 0);
-	connect(m_pShowFavoritesOnlyButton, SIGNAL(toggled(bool)), this, SLOT(updateFavoritesFilter(bool))); // Sets the server to a favorite
+	connect(m_pShowFavoritesOnlyButton, SIGNAL(toggled(bool)), this, SLOT(updateFilter())); // Sets the server to a favorite
 
 	m_pTreeWidget = new QTreeWidget(this);
 	addWidgetToLayout(m_pTreeWidget, 0, 1, 1, 1);
@@ -1485,10 +1502,8 @@ OptionsWidget_servers::OptionsWidget_servers(QWidget * parent)
 
 	m_pClipboard = nullptr;
 
-	m_bShowingFavoritesOnly = KVI_OPTION_BOOL(KviOption_boolShowFavoriteServersOnly);
-
 	fillServerList();
-	updateFavoritesFilter(KVI_OPTION_BOOL(KviOption_boolShowFavoriteServersOnly));
+	updateFilter();
 
 	layout()->setRowStretch(1, 1);
 	layout()->setColumnStretch(1, 1);
@@ -1729,50 +1744,6 @@ void OptionsWidget_servers::serverNetworkEditTextEdited(const QString &)
 	// make sure the current item is currently visible (if it still exists)
 	if(m_pLastEditedItem)
 		m_pTreeWidget->scrollToItem(m_pLastEditedItem, QTreeWidget::EnsureVisible);
-}
-
-void OptionsWidget_servers::filterTextEdited(const QString &)
-{
-	QString szFilter = m_pFilterEdit->text().trimmed();
-
-	IrcServerOptionsTreeWidgetItem * network;
-	for(int i = 0; i < m_pTreeWidget->topLevelItemCount(); i++)
-	{
-		network = (IrcServerOptionsTreeWidgetItem *)m_pTreeWidget->topLevelItem(i);
-		if(network->m_pNetworkData->name().contains(szFilter, Qt::CaseInsensitive) || network->m_pNetworkData->description().contains(szFilter, Qt::CaseInsensitive))
-		{
-			network->setHidden(false);
-			// if the net matches, we always show all its servers
-			IrcServerOptionsTreeWidgetItem * ch;
-			for(int j = 0; j < network->childCount(); j++)
-			{
-				ch = (IrcServerOptionsTreeWidgetItem *)network->child(j);
-				ch->setHidden(false);
-			}
-		}
-		else
-		{
-			uint uServers = 0;
-
-			IrcServerOptionsTreeWidgetItem * ch;
-			for(int j = 0; j < network->childCount(); j++)
-			{
-				bool bHidden = true;
-				ch = (IrcServerOptionsTreeWidgetItem *)network->child(j);
-				if(ch->m_pServerData)
-				{
-					if(ch->m_pServerData->hostName().contains(szFilter, Qt::CaseInsensitive) || ch->m_pServerData->description().contains(szFilter, Qt::CaseInsensitive))
-						bHidden = false;
-				}
-
-				if(!bHidden)
-					uServers++;
-				ch->setHidden(bHidden);
-			}
-			// if at list one server matches, we show its network
-			network->setHidden(!uServers);
-		}
-	}
 }
 
 void OptionsWidget_servers::saveLastItem()
@@ -2062,36 +2033,40 @@ void OptionsWidget_servers::favoriteServer()
 	m_pLastEditedItem->setIcon(0, *(g_pIconManager->getSmallIcon(icon)));
 
 	if(m_bShowingFavoritesOnly)
-		updateFavoritesFilter(true);
+		updateFilter();
 }
 
-void OptionsWidget_servers::updateFavoritesFilter(bool bSet)
+void OptionsWidget_servers::updateFilter()
 {
-	m_bShowingFavoritesOnly = bSet;
+	QString szFilter = m_pFilterEdit->text().trimmed();
+
+	m_bShowingFavoritesOnly = m_pShowFavoritesOnlyButton->isChecked();
 	IrcServerOptionsTreeWidgetItem * network;
-	for(unsigned i = 0; i < m_pTreeWidget->topLevelItemCount(); i++)
+	for(int i = 0; i < m_pTreeWidget->topLevelItemCount(); i++)
 	{
 		network = static_cast<IrcServerOptionsTreeWidgetItem *>(m_pTreeWidget->topLevelItem(i));
+		bool bNetworkMatchesFilter = network->m_pNetworkData->name().contains(szFilter, Qt::CaseInsensitive) || network->m_pNetworkData->description().contains(szFilter, Qt::CaseInsensitive);
 		uint uServers = 0;
 
 		IrcServerOptionsTreeWidgetItem * ch;
 		for(int j = 0; j < network->childCount(); j++)
 		{
-			bool bHidden = bSet ? true : false;
+			bool bHidden = true;
 			ch = static_cast<IrcServerOptionsTreeWidgetItem *>(network->child(j));
-			if(ch->m_pServerData && bSet)
+			if(!m_bShowingFavoritesOnly || (ch->m_pServerData && ch->m_pServerData->favorite()))
 			{
-				if(ch->m_pServerData->favorite())
+				// if the net matches, we always show all its servers
+				if(bNetworkMatchesFilter || ch->m_pServerData->hostName().contains(szFilter, Qt::CaseInsensitive) || ch->m_pServerData->description().contains(szFilter, Qt::CaseInsensitive))
 					bHidden = false;
 			}
 			if(!bHidden)
 				uServers++;
 			ch->setHidden(bHidden);
 		}
-		network->setHidden(!uServers);
+		network->setHidden(network->childCount() > 0 ? !uServers : (m_bShowingFavoritesOnly || !bNetworkMatchesFilter));
 	}
 
-	m_pShowFavoritesOnlyButton->setIcon(*(g_pIconManager->getSmallIcon(bSet ? KviIconManager::Favorite : KviIconManager::FavoriteOff)));
+	m_pShowFavoritesOnlyButton->setIcon(*(g_pIconManager->getSmallIcon(m_bShowingFavoritesOnly ? KviIconManager::Favorite : KviIconManager::FavoriteOff)));
 }
 
 void OptionsWidget_servers::copyServer()
@@ -2186,8 +2161,8 @@ void OptionsWidget_servers::clearList()
 	QString txt = __tr2qs_ctx("If you click <b>Yes</b>, all of your saved networks, servers, settings, and passwords will be lost.<br>"
 	                          "Would you like to continue?", "options");
 
-	if(QMessageBox::question(this,__tr2qs_ctx("Confirm Clearing Server List - KVIrc", "options"), txt,
-	                              __tr2qs_ctx("Yes", "options"), __tr2qs_ctx("No", "options"), nullptr, 1) != 0) return;
+	if(QMessageBox::question(this,__tr2qs_ctx("Confirm Clearing Server List - KVIrc", "options"), txt) != QMessageBox::Yes)
+		return;
 
 	m_pTreeWidget->clear();
 	m_pLastEditedItem = nullptr;

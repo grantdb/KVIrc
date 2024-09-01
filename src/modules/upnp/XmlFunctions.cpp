@@ -34,12 +34,13 @@
 #include "XmlFunctions.h"
 
 #include <QStringList>
+#include <QIODevice>
 
 // Helper function, get a specific node
 QDomNode XmlFunctions::getNode(const QDomNode & rootNode, const QString & path)
 {
 
-	QStringList pathItems = path.split("/", QString::SkipEmptyParts);
+	QStringList pathItems = path.split("/", Qt::SkipEmptyParts);
 	QDomNode childNode = rootNode.namedItem(pathItems[0]); // can be a null node
 
 	int i = 1;
@@ -57,7 +58,7 @@ QDomNode XmlFunctions::getNode(const QDomNode & rootNode, const QString & path)
 	if(childNode.isNull())
 	{
 		qDebug() << "XmlFunctions::getNode() - Notice: node '" << pathItems[i - 1] << "'"
-		         << " does not exist (root=" << rootNode.nodeName() << " path=" << path << ")." << endl;
+		         << " does not exist (root=" << rootNode.nodeName() << " path=" << path << ")." << Qt::endl;
 	}
 
 	return childNode;
@@ -79,7 +80,7 @@ QDomNode XmlFunctions::getNodeChildByKey(const QDomNodeList & childNodes, const 
 	for(int i = 0; i < childNodes.count(); i++)
 	{
 		//    kdDebug() << "node " << childNodes.item(i).nodeName() << "/" << keyTagName
-		//              << "="     << childNodes.item(i).namedItem(keyTagName).toElement().text() << " == " << keyValue << "?" << endl;
+		//              << "="     << childNodes.item(i).namedItem(keyTagName).toElement().text() << " == " << keyValue << "?" << Qt::endl;
 
 		// If the node has an childname with a certain value... e.g. <childNodes> <item><name>value</name></item> .. </childNodes>
 		if(childNodes.item(i).namedItem(keyTagName).toElement().text() == keyValue)
@@ -100,7 +101,7 @@ QString XmlFunctions::getNodeValue(const QDomNode & rootNode, const QString & pa
 	// Added code to avoid more assertion errors, and trace the cause.
 	if(rootNode.isNull())
 	{
-		qWarning() << "XmlFunctions::getNodeValue: attempted to request '" << path << "' on null root node." << endl;
+		qWarning() << "XmlFunctions::getNodeValue: attempted to request '" << path << "' on null root node." << Qt::endl;
 		return QString();
 	}
 

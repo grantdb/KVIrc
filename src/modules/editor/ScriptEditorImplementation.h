@@ -26,6 +26,7 @@
 
 #include "KviScriptEditor.h"
 #include "KviSelectors.h"
+#include "KviRegExp.h"
 
 #include <QCompleter>
 #include <QLabel>
@@ -123,13 +124,13 @@ public:
 private:
 	struct KviScriptHighlightingRule
 	{
-		QRegExp pattern;
+		KviRegExp pattern;
 		QTextCharFormat format;
 	};
 
 	QVector<KviScriptHighlightingRule> highlightingRules;
-	QRegExp commentStartExpression;
-	QRegExp commentEndExpression;
+	KviRegExp commentStartExpression;
+	KviRegExp commentEndExpression;
 
 	QTextCharFormat bracketFormat;
 	QTextCharFormat punctuationFormat;
@@ -202,7 +203,7 @@ class ScriptEditorReplaceDialog final : public QDialog
 {
 	Q_OBJECT
 public:
-	ScriptEditorReplaceDialog(QWidget * parent = 0, const QString & szName = QString());
+	ScriptEditorReplaceDialog(QWidget * parent = nullptr, const QString & szName = QString());
 
 public:
 	QLineEdit * m_pFindLineEdit;

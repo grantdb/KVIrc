@@ -320,20 +320,9 @@ void register_core_actions(KviActionManager * m)
 
 	SCRIPT_ACTION(
 	    KVI_COREACTION_KVIRCHOMEPAGE,
-	    "openurl http://www.kvirc.net",
+	    "openurl https://www.kvirc.net",
 	    __tr2qs("KVIrc WWW"),
 	    __tr2qs("Opens the KVIrc homepage"),
-	    KviActionManager::categoryGeneric(),
-	    "kvi_bigicon_homepage.png",
-	    KviIconManager::HomePage,
-	    0,
-	    QString());
-
-	SCRIPT_ACTION(
-	    KVI_COREACTION_KVIRCRUHOMEPAGE,
-	    "openurl http://www.kvirc.ru",
-	    __tr2qs("KVIrc Russian WWW"),
-	    __tr2qs("Opens the KVIrc homepage in Russian"),
 	    KviActionManager::categoryGeneric(),
 	    "kvi_bigicon_homepage.png",
 	    KviIconManager::HomePage,
@@ -475,7 +464,7 @@ void KviIrcContextDisplayAction::activeContextChanged()
 {
 	for(auto & pAction : m_pActionList)
 	{
-		QToolBar * t = (QToolBar *)pAction->parentWidget();
+		QToolBar * t = qobject_cast<QToolBar *>(pAction->parent());
 		if(t)
 		{
 			KviIrcContextDisplay * w = (KviIrcContextDisplay *)t->widgetForAction(pAction);
@@ -489,7 +478,7 @@ void KviIrcContextDisplayAction::activeContextStateChanged()
 {
 	for(auto & pAction : m_pActionList)
 	{
-		QToolBar * t = (QToolBar *)pAction->parentWidget();
+		QToolBar * t = qobject_cast<QToolBar *>(pAction->parent());
 		if(t)
 		{
 			KviIrcContextDisplay * w = (KviIrcContextDisplay *)t->widgetForAction(pAction);
@@ -649,7 +638,7 @@ bool KviConnectAction::addToPopupMenu(QMenu * p)
 			case KviIrcContext::Idle:
 				t = m_szConnectString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				p->addAction(t, this, SLOT(activate()));
 				break;
 			case KviIrcContext::PendingReconnection:
@@ -657,19 +646,19 @@ bool KviConnectAction::addToPopupMenu(QMenu * p)
 			case KviIrcContext::LoggingIn:
 				t = m_szAbortConnectionString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				p->addAction(t, this, SLOT(activate()));
 				break;
 			case KviIrcContext::Connected:
 				t = m_szDisconnectString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				p->addAction(t, this, SLOT(activate()));
 				break;
 			default:
 				t = m_szConnectString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				pAction = p->addAction(t, this, SLOT(activate()));
 				pAction->setEnabled(false);
 				break;
@@ -679,7 +668,7 @@ bool KviConnectAction::addToPopupMenu(QMenu * p)
 	{
 		t = m_szConnectString;
 		if(!m_szKeySequence.isEmpty())
-			t += '\t' + m_szKeySequence;
+			t += "\t" + m_szKeySequence;
 		pAction = p->addAction(t, this, SLOT(activate()));
 		pAction->setEnabled(false);
 	}
@@ -841,7 +830,7 @@ KviChangeNickAction::KviChangeNickAction(QObject * pParent)
     : KviSubmenuAction(
           pParent,
           QString(KVI_COREACTION_NICKNAMEMENU),
-          QString("dialog.textinput(\"" + __tr2qs("Change Nickname") + "\",\"" + __tr2qs("Please enter the new nickname") + "\",\"" + __tr2qs("OK") + "\",\"" + __tr2qs("Cancel") + "\"){ if($0 == 0 && $1 != \"\")nick $1; }"),
+          QString("dialog.textinput(\"" + __tr2qs("Change Nickname") + "\",\"" + __tr2qs("Please enter the new nickname") + "\",\"" + __tr2qs("OK") + "\",\"" + __tr2qs("Cancel") + R"("){ if($0 == 0 && $1 != "")nick $1; })"),
           __tr2qs("Change Nickname"),
           __tr2qs("Shows a popup menu that allows quickly changing the nickname"),
           KviActionManager::categoryIrc(),
@@ -1147,14 +1136,14 @@ bool KviGoAwayAction::addToPopupMenu(QMenu * p)
 			{
 				t = m_szBackString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				p->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::Away)), t, this, SLOT(activate()));
 			}
 			else
 			{
 				t = m_szAwayString;
 				if(!m_szKeySequence.isEmpty())
-					t += '\t' + m_szKeySequence;
+					t += "\t" + m_szKeySequence;
 				p->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::NotAway)), t, this, SLOT(activate()));
 			}
 		}
@@ -1162,7 +1151,7 @@ bool KviGoAwayAction::addToPopupMenu(QMenu * p)
 		{
 			t = m_szAwayString;
 			if(!m_szKeySequence.isEmpty())
-				t += '\t' + m_szKeySequence;
+				t += "\t" + m_szKeySequence;
 			pAction = p->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::NotAway)), t, this, SLOT(activate()));
 			pAction->setEnabled(false);
 		}
@@ -1171,7 +1160,7 @@ bool KviGoAwayAction::addToPopupMenu(QMenu * p)
 	{
 		t = m_szAwayString;
 		if(!m_szKeySequence.isEmpty())
-			t += '\t' + m_szKeySequence;
+			t += "\t" + m_szKeySequence;
 		pAction = p->addAction(*(g_pIconManager->getSmallIcon(KviIconManager::NotAway)), t, this, SLOT(activate()));
 		pAction->setEnabled(false);
 	}

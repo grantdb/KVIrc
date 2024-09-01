@@ -44,8 +44,13 @@
 #include <QComboBox>
 #include <QGridLayout>
 
+#include <QAudioInput>
 #include <QCamera>
-#include <QCameraViewfinder>
+#include <QMediaCaptureSession>
+#include <QMediaDevices>
+#include <QMediaMetaData>
+#include <QScopedPointer>
+class QVideoWidget;
 
 #ifdef COMPILE_CRYPT_SUPPORT
 class KviCryptSessionInfo;
@@ -64,11 +69,11 @@ extern bool kvi_dcc_video_is_valid_codec(const char * codecName);
 #define KVI_DCC_VIDEO_THREAD_ACTION_STOP_PLAYING 3
 #define KVI_DCC_VIDEO_THREAD_ACTION_GRAB_FRAME 4
 
-typedef struct _KviDccVideoThreadOptions
+struct KviDccVideoThreadOptions
 {
 	QString szVideoDevice;
 	DccVideoCodec * pCodec;
-} KviDccVideoThreadOptions;
+};
 
 class DccVideoThread : public DccThread
 {
@@ -102,9 +107,9 @@ protected:
 	void stopRecording();
 	void startPlaying();
 	void stopPlaying();
-	inline bool isPlaying() { return m_bPlaying; };
-	virtual void run();
-	virtual bool handleIncomingData(KviDccThreadIncomingData * data, bool bCritical);
+	bool isPlaying() const { return m_bPlaying; }
+	void run() override;
+	bool handleIncomingData(KviDccThreadIncomingData * data, bool bCritical);
 };
 
 class DccVideoWindow : public DccWindow
@@ -119,37 +124,38 @@ public:
 protected:
 	KviThemedLabel * m_pLabel;
 	QWidget * m_pContainerWidget;
-	QImage * m_pCameraImage;
-	QCameraViewfinder * m_pCameraView;
-	QCamera * m_pCamera;
-	QLabel * m_pInVideoLabel;
 	QComboBox * m_pCDevices;
-	QComboBox * m_pCInputs;
-	QComboBox * m_pCStandards;
 	QGridLayout * m_pLayout;
 	QTimer m_Timer;
-	QLabel * m_pVideoLabel[3];
-	QString * m_pszTarget;
+	QLabel * m_pVideoLabel;
+	QString m_szTarget;
 	DccVideoThread * m_pSlaveThread;
 	QByteArray m_tmpTextDataOut;
 	QString m_szLocalNick;
 
+	//camera
+	QVideoWidget * m_pLocalCamera;
+	QVideoWidget * m_pRemoteCamera;
+    QMediaDevices m_devices;
+    QMediaCaptureSession m_captureSession;
+    QScopedPointer<QCamera> m_camera;
+    QScopedPointer<QAudioInput> m_audioInput;
 protected:
-	virtual void triggerCreationEvents();
-	virtual void triggerDestructionEvents();
-	virtual const QString & target();
-	virtual void fillCaptionBuffers();
-	virtual QPixmap * myIconPtr();
-	virtual bool event(QEvent * e);
-	virtual void getBaseLogFileName(QString & buffer);
+	void triggerCreationEvents() override;
+	void triggerDestructionEvents() override;
+	const QString & target() override;
+	void fillCaptionBuffers() override;
+	QPixmap * myIconPtr() override;
+	bool event(QEvent * e) override;
+	void getBaseLogFileName(QString & buffer) override;
 	void startTalking();
 	void stopTalking();
 	void startConnection();
-	virtual const QString & localNick();
-	virtual void ownMessage(const QString & text, bool bUserFeedback = true);
-	virtual void ownAction(const QString & text);
-	virtual void resizeEvent(QResizeEvent *);
-	virtual QSize sizeHint() const;
+	const QString & localNick() override;
+	void ownMessage(const QString & text, bool bUserFeedback = true) override;
+	void ownAction(const QString & text) override;
+	void resizeEvent(QResizeEvent *) override;
+	QSize sizeHint() const override;
 protected slots:
 	void handleMarshalError(KviError::Code eError);
 	void connected();
@@ -157,7 +163,22 @@ protected slots:
 	void connectionInProgress();
 	void slotUpdateImage();
 	void textViewRightClicked();
-	void videoInputChanged(int);
+
+	//camera
+    void initializeLocalCamera();
+
+    void setCamera(const QCameraDevice &cameraDevice);
+
+    void startCamera();
+    void stopCamera();
+
+    void setMuted(bool);
+
+    void displayCameraError();
+
+    void updateCameraDevice(int idx);
+    void updateCameraActive(bool active);
+    void updateCameras();
 };
 
 #endif //_VIDEO_H_

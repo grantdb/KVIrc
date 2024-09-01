@@ -31,6 +31,7 @@
 #include "KviOptions.h"
 #include "KviLocale.h"
 #include "KviModule.h"
+#include "KviRegExp.h"
 #include "KviConfigurationFile.h"
 #include "kvi_sourcesdate.h"
 
@@ -39,7 +40,6 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QRegExp>
 #include <QToolTip>
 #include <QTimer>
 
@@ -52,6 +52,7 @@ HelpWindow::HelpWindow(const char * name)
     : KviWindow(KviWindow::Help, name)
 {
 	g_pHelpWindowList->append(this);
+	setMinimumSize(600, 500);
 	m_pSplitter = new KviTalSplitter(Qt::Horizontal, this);
 	m_pSplitter->setObjectName("main_splitter");
 	m_pSplitter->setChildrenCollapsible(false);
@@ -186,8 +187,8 @@ void HelpWindow::startSearch()
 	str = str.replace("`", "\"");
 	QString buf = str;
 	str = str.replace("-", " ");
-	str = str.replace(QRegExp("\\s[\\S]?\\s"), " ");
-	m_terms = str.split(" ", QString::SkipEmptyParts);
+	str = str.replace(KviRegExp(R"(\s[\S]?\s)"), " ");
+	m_terms = str.split(" ", Qt::SkipEmptyParts);
 	QStringList termSeq;
 	QStringList seqWords;
 	QStringList::iterator it = m_terms.begin();
@@ -218,7 +219,7 @@ void HelpWindow::startSearch()
 					    __tr2qs("Using a wildcard within phrases is not allowed."));
 					return;
 				}
-				seqWords += s.split(' ', QString::SkipEmptyParts);
+				seqWords += s.split(' ', Qt::SkipEmptyParts);
 				termSeq << s;
 				beg = str.indexOf('\"', end + 1);
 			}
@@ -267,11 +268,7 @@ void HelpWindow::startSearch()
 	setCursor(Qt::ArrowCursor);
 }
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-QWebView * HelpWindow::textBrowser()
-#else
 QTextBrowser * HelpWindow::textBrowser()
-#endif
 {
 	return m_pHelpWidget->textBrowser();
 }
@@ -281,11 +278,7 @@ void HelpWindow::showIndexTopic()
 	if(m_pIndexSearch->text().isEmpty() || !m_pIndexListWidget->selectedItems().count())
 		return;
 	int i = g_pDocIndex->titlesList().indexOf(m_pIndexListWidget->selectedItems().at(0)->text());
-#ifdef COMPILE_WEBKIT_SUPPORT
-	textBrowser()->load(QUrl(g_pDocIndex->documentList()[i]));
-#else
 	textBrowser()->setSource(QUrl(g_pDocIndex->documentList()[i]));
-#endif
 }
 
 void HelpWindow::searchInIndex(const QString & s)
@@ -310,11 +303,7 @@ void HelpWindow::indexSelected(QListWidgetItem * item)
 	if(!item)
 		return;
 	int i = g_pDocIndex->titlesList().indexOf(item->text());
-#ifdef COMPILE_WEBKIT_SUPPORT
-	textBrowser()->load(QUrl(g_pDocIndex->documentList()[i]));
-#else
 	textBrowser()->setSource(QUrl(g_pDocIndex->documentList()[i]));
-#endif
 }
 
 void HelpWindow::searchSelected(QListWidgetItem * item)
@@ -322,11 +311,7 @@ void HelpWindow::searchSelected(QListWidgetItem * item)
 	if(!item)
 		return;
 	int i = g_pDocIndex->titlesList().indexOf(item->text());
-#ifdef COMPILE_WEBKIT_SUPPORT
-	textBrowser()->load(QUrl(g_pDocIndex->documentList()[i]));
-#else
 	textBrowser()->setSource(QUrl(g_pDocIndex->documentList()[i]));
-#endif
 }
 
 QPixmap * HelpWindow::myIconPtr()

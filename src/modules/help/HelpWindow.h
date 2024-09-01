@@ -31,17 +31,11 @@
 #include "kvi_settings.h"
 
 #include <QTabWidget>
-#ifdef COMPILE_WEBKIT_SUPPORT
-#include <QtWebKitWidgets/QWebView>
-#else
-class QTextBrowser;
-#endif
-
 #include <QLineEdit>
 
+class QTextBrowser;
 class QProgressBar;
 class QPushButton;
-
 class HelpWidget;
 
 class HelpWindow : public KviWindow
@@ -72,18 +66,14 @@ protected:
 public:
 	HelpWidget * helpWidget() { return m_pHelpWidget; };
 protected:
-	virtual QPixmap * myIconPtr();
-	virtual void fillCaptionBuffers();
-	virtual void resizeEvent(QResizeEvent * e);
-	virtual void saveProperties(KviConfigurationFile * cfg);
-	virtual void loadProperties(KviConfigurationFile * cfg);
+	QPixmap * myIconPtr() override;
+	void fillCaptionBuffers() override;
+	void resizeEvent(QResizeEvent * e) override;
+	void saveProperties(KviConfigurationFile * cfg) override;
+	void loadProperties(KviConfigurationFile * cfg) override;
 
 public:
-#ifdef COMPILE_WEBKIT_SUPPORT
-	QWebView * textBrowser();
-#else
 	QTextBrowser * textBrowser();
-#endif
 public slots:
 	void indexSelected(QListWidgetItem *);
 	void searchInIndex(const QString & s);

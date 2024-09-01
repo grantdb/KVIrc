@@ -69,7 +69,7 @@ bool KviKvsProcessAsyncOperation::start()
 
 	if(m_pData->iFlags & KVI_KVS_PROCESSDESCRIPTOR_NOSHELL)
 	{
-		args = m_pData->szCommandline.split(" ", QString::SkipEmptyParts);
+		args = m_pData->szCommandline.split(" ", Qt::SkipEmptyParts);
 	}
 	else
 	{
@@ -77,20 +77,12 @@ bool KviKvsProcessAsyncOperation::start()
 		if(szShell.isEmpty())
 		{
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
-			// [01:26:00] <PragmaOff> btw, what is qt_winunicode ?
-			// [01:26:12] <kode54> Qt export specific to win32
-			// [01:26:27] <kode54> bool which indicates whether system is Unicode (NT) or not
-			// [01:26:58] <kode54> not sure if that's documented, but it is a public export
-			//
-			// [02:50:21] <kode54> if ( QApplication::winVersion() & Qt::WV_NT_based )
-			// [02:50:41] <kode54> I see another implementation using that, maybe it is the official way of detecting that :[
-			szShell = !(QSysInfo::WindowsVersion & QSysInfo::WV_DOS_based) ? "cmd.exe /c" : "command.com /c";
-// Thnx kode54 :)
+			szShell = "cmd.exe /c";
 #else
 			szShell = "sh -c";
 #endif
 		}
-		args = szShell.split(" ", QString::SkipEmptyParts);
+		args = szShell.split(" ", Qt::SkipEmptyParts);
 		args.append(m_pData->szCommandline);
 	}
 
@@ -316,7 +308,7 @@ void KviKvsProcessAsyncOperation::processStarted()
 		return;
 
 	QString szPid;
-	szPid.setNum((intptr_t)(m_pProcess->pid()));
+	szPid.setNum(m_pProcess->processId());
 	if(trigger(EventStarted, szPid))
 	{
 		triggerSelfDelete();
@@ -385,7 +377,7 @@ void KviKvsProcessManager::done()
 {
 	if(!m_pInstance)return;
 	delete m_pInstance;
-	m_pInstance = 0;
+	m_pInstance = nullptr;
 }
 
 bool KviKvsProcessManager::execute(KviKvsProcessAsyncOperationData * d)

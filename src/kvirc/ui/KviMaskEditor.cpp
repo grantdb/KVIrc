@@ -43,7 +43,7 @@ KviMaskItem::KviMaskItem(QTreeWidget * pParent, KviMaskEntry * pEntry)
 {
 	QString szDate;
 	QDateTime date;
-	date.setTime_t(mask()->uSetAt);
+	date.setSecsSinceEpoch(mask()->uSetAt);
 	switch(KVI_OPTION_UINT(KviOption_uintOutputDatetimeFormat))
 	{
 		case 0:
@@ -55,7 +55,7 @@ KviMaskItem::KviMaskItem(QTreeWidget * pParent, KviMaskEntry * pEntry)
 			szDate = date.toString(Qt::ISODate);
 			break;
 		case 2:
-			szDate = date.toString(Qt::SystemLocaleShortDate);
+			szDate = QLocale().toString(date, QLocale::ShortFormat);
 			break;
 	}
 	setText(0, mask()->szMask);
@@ -71,7 +71,7 @@ KviMaskInputDialog::KviMaskInputDialog(const QString & szMask, KviMaskEditor * p
 {
 	m_pChannel = pChannel;
 	m_pEditor = pEditor;
-	setModal(1);
+	setModal(true);
 	m_szOldMask = szMask;
 
 	setWindowTitle(__tr2qs("Mask Editor - KVIrc"));

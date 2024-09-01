@@ -873,8 +873,8 @@ void KviIrcServerParser::parseLiteralPrivmsg(KviIrcMessage * msg)
 
 	PrivmsgIdentifyMsgCapState eCapState = IdentifyMsgCapNotUsed;
 
-	KviCString pTrailing = msg->trailingString();
-	if(pTrailing)
+	KviCString pTrailing = msg->safeTrailingString();
+	if(!pTrailing.isEmpty())
 	{
 		if(msg->connection()->stateData()->identifyMsgCapabilityEnabled())
 		{
@@ -1003,8 +1003,8 @@ void KviIrcServerParser::parseLiteralPrivmsg(KviIrcMessage * msg)
 			// spam message...
 			if(KVI_OPTION_BOOL(KviOption_boolUseAntiSpamOnPrivmsg))
 			{
-				KviCString theMsg = msg->trailingString();
-				if(theMsg)
+				KviCString theMsg = msg->safeTrailingString();
+				if(!theMsg.isEmpty())
 				{
 					KviCString spamWord;
 					if(kvi_mayBeSpam(theMsg, spamWord))
@@ -1254,8 +1254,8 @@ void KviIrcServerParser::parseLiteralNotice(KviIrcMessage * msg)
 
 	// FIXME: "DEDICATED CTCP WINDOW ?"
 
-	KviCString pTrailing = msg->trailingString();
-	if(pTrailing)
+	KviCString pTrailing = msg->safeTrailingString();
+	if(!pTrailing.isEmpty())
 	{
 		if(*(pTrailing.ptr()) == 0x01)
 		{
@@ -1446,8 +1446,8 @@ void KviIrcServerParser::parseLiteralNotice(KviIrcMessage * msg)
 			// spam message...
 			if(KVI_OPTION_BOOL(KviOption_boolUseAntiSpamOnNotice))
 			{
-				KviCString theMsg = msg->trailingString(); // FIXME
-				if(theMsg)
+				KviCString theMsg = msg->safeTrailingString();
+				if(!theMsg.isEmpty())
 				{
 					KviCString spamWord;
 					if(kvi_mayBeSpam(theMsg, spamWord))
@@ -1610,7 +1610,7 @@ void KviIrcServerParser::parseLiteralNotice(KviIrcMessage * msg)
 			// OFTC replaced RPL_HOSTHIDDEN with a server notice
 			if(version == "Hybrid+Oftc")
 			{
-				QStringList parts = szMsgText.split(" ", QString::SkipEmptyParts);
+				QStringList parts = szMsgText.split(" ", Qt::SkipEmptyParts);
 				if(parts.count() == 3)
 				{
 					if(parts[0] == "Activating" && parts[1] == "Cloak:")
@@ -1729,7 +1729,7 @@ void KviIrcServerParser::parseLiteralTopic(KviIrcMessage * msg)
 			szTmp = date.toString(Qt::ISODate);
 			break;
 		case 2:
-			szTmp = date.toString(Qt::SystemLocaleShortDate);
+			szTmp = QLocale().toString(date, QLocale::ShortFormat);
 			break;
 	}
 	chan->topicWidget()->setTopicSetAt(szTmp);
@@ -2022,7 +2022,6 @@ void KviIrcServerParser::parseChannelMode(const QString & szNick, const QString 
 {
 	bool bSet = true;
 
-	bool bIsMultiMode = false;
 	bool bIsMultiSingleMode = false;
 	bool bShowAsCompact = false;
 
@@ -2086,7 +2085,6 @@ void KviIrcServerParser::parseChannelMode(const QString & szNick, const QString 
 
 	if(iTotModes > 1)
 	{
-		bIsMultiMode = true;
 		bShowAsCompact = KVI_OPTION_BOOL(KviOption_boolShowCompactModeChanges);
 
 		if(iSingleModes == 1)
@@ -2234,7 +2232,7 @@ void KviIrcServerParser::parseChannelMode(const QString & szNick, const QString 
 
 					aParam = msg->connection()->decodeText(msg->safeParam(curParam++));
 					// we call setModeInList anyway to fill the "mode q editor"
-					chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toTime_t());
+					chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toSecsSinceEpoch());
 					if(aParam.contains('!'))
 					{
 						// it's a mask
@@ -2371,7 +2369,7 @@ void KviIrcServerParser::parseChannelMode(const QString & szNick, const QString 
 #define CHANNEL_MODE(modefl, evmeset, evmeunset, evset, evunset, icomeset, icomeunset, icoset, icounset)                                    \
 	case modefl:                                                                                                                            \
 		aParam = msg->connection()->decodeText(msg->safeParam(curParam++));                                                                 \
-		chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toTime_t()); \
+		chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toSecsSinceEpoch()); \
 		{                                                                                                                                   \
 		KviIrcMask auxMask(aParam);                                                                                                         \
 		bIsMe = auxMask.matchesFixed(                                                                                                       \
@@ -2415,7 +2413,7 @@ void KviIrcServerParser::parseChannelMode(const QString & szNick, const QString 
 				 * spam filter with parameter like mode "g" in inspircd
 				 */
 					aParam = msg->connection()->decodeText(msg->safeParam(curParam++));
-					chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toTime_t());
+					chan->setModeInList(*aux, aParam, bSet, msg->connection()->decodeText(msg->safePrefix()), QDateTime::currentDateTime().toSecsSinceEpoch());
 
 					if(!(msg->haltOutput() || bShowAsCompact))
 					{

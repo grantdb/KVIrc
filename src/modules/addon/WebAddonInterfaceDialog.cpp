@@ -24,8 +24,6 @@
 
 #include "kvi_settings.h"
 
-#ifdef COMPILE_WEBKIT_SUPPORT
-
 #include "WebAddonInterfaceDialog.h"
 #include "AddonFunctions.h"
 
@@ -41,10 +39,9 @@ WebAddonInterfaceDialog::WebAddonInterfaceDialog(QWidget * par)
 {
 	setWindowTitle(__tr2qs_ctx("Download Addons - KVIrc", "theme"));
 
-	setPackagePageUrl(
-	    QString::fromLatin1("http://www.kvirc.de/app/addons.php?version=" KVI_VERSION "&lang=%1")
-	        .arg(KviLocale::instance()->localeName()));
+	setPackagePageUrl("https://kvirc.github.io/kvirc-addons/");
 }
+
 WebAddonInterfaceDialog::~WebAddonInterfaceDialog()
     = default;
 
@@ -65,5 +62,3 @@ bool WebAddonInterfaceDialog::packageIsInstalled(const QString & szId, const QSt
 	// FIXME: If the version of the installed addon is lower than allow upgrading!
 	return KviMiscUtils::compareVersions(pAddon->version(), szVersion) < 0;
 }
-
-#endif //COMPILE_WEBKIT_SUPPORT

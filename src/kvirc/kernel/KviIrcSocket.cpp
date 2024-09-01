@@ -45,6 +45,7 @@
 
 #include <QTimer>
 #include <QSocketNotifier>
+#include <memory>
 
 #if !defined(COMPILE_ON_WINDOWS) && !defined(COMPILE_ON_MINGW)
 #include <unistd.h> //for gettimeofday()
@@ -70,7 +71,7 @@ KviIrcSocket::KviIrcSocket(KviIrcLink * pLink)
 	if(KVI_OPTION_UINT(KviOption_uintSocketQueueFlushTimeout) < 100)
 		KVI_OPTION_UINT(KviOption_uintSocketQueueFlushTimeout) = 100; // this is our minimum, we don't want to lag the app
 
-	m_pFlushTimer.reset(new QTimer()); // queue flush timer
+	m_pFlushTimer = std::make_unique<QTimer>(); // queue flush timer
 	connect(m_pFlushTimer.get(), SIGNAL(timeout()), this, SLOT(flushSendQueue()));
 }
 
@@ -180,7 +181,7 @@ void KviIrcSocket::outputSSLError(const QString & szMsg)
 
 void KviIrcSocket::outputProxyMessage(const QString & szMsg)
 {
-	for(const auto & it : szMsg.split('\n', QString::SkipEmptyParts))
+	for(const auto & it : szMsg.split('\n', Qt::SkipEmptyParts))
 	{
 		QString szTemporary = it.trimmed();
 		m_pConsole->output(KVI_OUT_SOCKETMESSAGE, __tr2qs("[PROXY]: %Q"), &szTemporary);
@@ -189,7 +190,7 @@ void KviIrcSocket::outputProxyMessage(const QString & szMsg)
 
 void KviIrcSocket::outputProxyError(const QString & szMsg)
 {
-	for(const auto & it : szMsg.split('\n', QString::SkipEmptyParts))
+	for(const auto & it : szMsg.split('\n', Qt::SkipEmptyParts))
 	{
 		QString szTemporary = it.trimmed();
 		m_pConsole->output(KVI_OUT_SOCKETERROR, __tr2qs("[PROXY ERROR]: %Q"), &szTemporary);
@@ -745,7 +746,7 @@ void KviIrcSocket::proxyLoginV4()
 	KviMemory::move((void *)(pcBufToSend + 4), (void *)&host, 4);
 	KviMemory::move((void *)(pcBufToSend + 8), (void *)(szUserAndPass.ptr()), szUserAndPass.len());
 
-	pcBufToSend[iLen - 1] = 0; //NULL
+	pcBufToSend[iLen - 1] = '\0';
 
 	// send it into hyperspace...
 	setState(ProxyFinalV4);
@@ -1354,6 +1355,9 @@ void KviIrcSocket::doSSLHandshake(int)
 		reset();
 		return; // ops ?
 	}
+
+	// TLS: Set SNI hostname
+	m_pSSL->setTLSHostname(m_pIrcServer->hostName().toUtf8().data());
 
 	switch(m_pSSL->connect())
 	{

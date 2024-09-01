@@ -121,8 +121,6 @@ namespace KviKvsCoreSimpleCommands
 		KVSCSC_PARAMETER("reason", KVS_PT_STRING, KVS_PF_OPTIONAL | KVS_PF_APPENDREMAINING, szReason)
 		KVSCSC_PARAMETERS_END
 
-		KVSCSC_REQUIRE_CONNECTION
-
 		if(szReason.isEmpty())
 		{
 			if(KVI_OPTION_BOOL(KviOption_boolUseAwayMessage) || KVSCSC_pSwitches->find('d', "default-message"))
@@ -173,6 +171,8 @@ namespace KviKvsCoreSimpleCommands
 		}
 		else
 		{
+			KVSCSC_REQUIRE_CONNECTION
+
 			QByteArray szR = KVSCSC_pConnection->encodeText(szReason);
 			if(!(KVSCSC_pConnection->sendFmtData("AWAY :%s", szR.data())))
 				return KVSCSC_pContext->warningNoIrcConnection();
@@ -208,8 +208,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(back)
 	{
-		Q_UNUSED(__pParams);
-
 		if(KVSCSC_pSwitches->find('a', "all-networks"))
 		{
 			for(auto & wnd : g_pGlobalWindowDict)
@@ -523,8 +521,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(cap)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szCommand, szParams;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("command", KVS_PT_NONEMPTYSTRING, 0, szCommand)
@@ -726,8 +722,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(debugCKEYWORDWORKAROUND)
 	{
-		Q_UNUSED(__pContext);
-
 		QString szAll;
 		KVSCSC_pParams->allAsString(szAll);
 		if(KVSCSC_pSwitches->find('c', "scriptcontext-name"))
@@ -1336,8 +1330,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(error)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szAll;
 		KVSCSC_pParams->allAsString(szAll);
 		KVSCSC_pContext->error("%Q", &szAll);
@@ -1583,10 +1575,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(exit)
 	{
-		Q_UNUSED(__pSwitches);
-		Q_UNUSED(__pContext);
-		Q_UNUSED(__pParams);
-
 		g_pApp->quit();
 		return true;
 	}

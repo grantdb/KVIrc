@@ -51,16 +51,16 @@
 	KVSM_PARAMETERS_BEGIN(c)                                                   \
 	KVSM_PARAMETER("irc_context_id", KVS_PT_UINT, KVS_PF_OPTIONAL, iContextId) \
 	KVSM_PARAMETERS_END(c)                                                     \
-	KviConsoleWindow * pConsole = NULL;                                        \
+	KviConsoleWindow * pConsole = nullptr;                                     \
 	if(c->parameterCount() > 0)                                                \
 		pConsole = g_pApp->findConsole(iContextId);                            \
 	else                                                                       \
 		pConsole = c->window()->console();
 
 #define GET_CONNECTION_FROM_STANDARD_PARAMS \
-	GET_CONSOLE_FROM_STANDARD_PARAMS        \
-	KviIrcConnection * pConnection = NULL;  \
-	if(pConsole)                            \
+	GET_CONSOLE_FROM_STANDARD_PARAMS          \
+	KviIrcConnection * pConnection = nullptr; \
+	if(pConsole)                              \
 		pConnection = pConsole->context()->connection();
 
 #define STANDARD_IRC_CONNECTION_TARGET_PARAMETER(_fncName, _setCall) \
@@ -401,7 +401,7 @@ STANDARD_IRC_CONNECTION_TARGET_PARAMETER(
 		<string> $context.state(<irc_context_id:uint>)
 	@description:
 		Returns a string describing the state of the specified IRC context.
-		The string will be either [i]idle[/i], [i]connecting[/i], [i]loggingin[/i] or [i]connected[/i].
+		The string will be either [i]idle[/i], [i]pending[/i], [i]connecting[/i], [i]loggingin[/i] or [i]connected[/i].
 		If no irc_context_id is specified then the current irc_context is used.
 		If the irc_context_id specification is not valid then this function
 		returns nothing.

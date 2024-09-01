@@ -28,6 +28,7 @@
 #include "KviLocale.h"
 #include "KviModule.h"
 #include "KviFileUtils.h"
+#include "KviRegExp.h"
 #include "kvi_sourcesdate.h"
 #include "KviApplication.h"
 #include "KviMainWindow.h"
@@ -93,7 +94,7 @@ static bool help_kvs_cmd_open(KviKvsModuleCommandCall * c)
 	if(szParam.isEmpty())
 	{
 		szParam = QString("index.html");
-		qDebug("No file, use default at path %s", szDoc.toUtf8().data());
+		qDebug("No file, use default at path %s", szParam.toUtf8().data());
 	}
 
 	/*
@@ -148,7 +149,7 @@ static bool help_kvs_cmd_open(KviKvsModuleCommandCall * c)
 				}
 			}
 
-			int i = g_pDocIndex->titlesList().indexOf(QRegExp(QRegExp::escape(szParam), Qt::CaseInsensitive));
+			int i = g_pDocIndex->titlesList().indexOf((QRegularExpression) KviRegExp(KviRegExp::escape(szParam), KviRegExp::CaseInsensitive));
 			if(i != -1)
 			{
 				szDoc = QUrl(g_pDocIndex->documentList()[i]).toLocalFile();
@@ -157,9 +158,9 @@ static bool help_kvs_cmd_open(KviKvsModuleCommandCall * c)
 			else
 			{
 				QString szTmpDocName(".*/doc_");
-				szTmpDocName.append(QRegExp::escape(szParam));
+				szTmpDocName.append(KviRegExp::escape(szParam));
 				szTmpDocName.append("\\.html");
-				i = g_pDocIndex->documentList().indexOf(QRegExp(szTmpDocName, Qt::CaseInsensitive));
+				i = g_pDocIndex->documentList().indexOf((QRegularExpression) KviRegExp(szTmpDocName, KviRegExp::CaseInsensitive));
 				if(i != -1)
 				{
 					szDoc = QUrl(g_pDocIndex->documentList()[i]).toLocalFile();
@@ -184,11 +185,7 @@ static bool help_kvs_cmd_open(KviKvsModuleCommandCall * c)
 
 		if(w)
 		{
-#ifdef COMPILE_WEBKIT_SUPPORT
-			w->textBrowser()->load(QUrl::fromLocalFile(f.absoluteFilePath()));
-#else
 			w->textBrowser()->setSource(QUrl::fromLocalFile(f.absoluteFilePath()));
-#endif
 			HelpWindow * pHelpWindow = g_pHelpWindowList->first();
 			if (pHelpWindow)
 				pHelpWindow->delayedAutoRaise();
@@ -198,21 +195,13 @@ static bool help_kvs_cmd_open(KviKvsModuleCommandCall * c)
 	if(c->switches()->find('m', "mdi"))
 	{
 		HelpWindow * w = new HelpWindow("Help browser");
-#ifdef COMPILE_WEBKIT_SUPPORT
-		w->textBrowser()->load(QUrl::fromLocalFile(f.absoluteFilePath()));
-#else
 		w->textBrowser()->setSource(QUrl::fromLocalFile(f.absoluteFilePath()));
-#endif
 		g_pMainWindow->addWindow(w);
 	}
 	else
 	{
 		HelpWidget * w = new HelpWidget(g_pMainWindow->splitter(), true);
-#ifdef COMPILE_WEBKIT_SUPPORT
-		w->textBrowser()->load(QUrl::fromLocalFile(f.absoluteFilePath()));
-#else
 		w->textBrowser()->setSource(QUrl::fromLocalFile(f.absoluteFilePath()));
-#endif
 		w->show();
 	}
 

@@ -2916,10 +2916,10 @@ KviKvsTreeNodeDataList * KviKvsParser::parseCommaSeparatedParameterList()
 	{                                                       \
 		QString szValue;                                    \
                                                             \
-		const QChar * pStart = KVSP_curCharPointer;         \
+		[[maybe_unused]] const QChar * pStart = KVSP_curCharPointer;         \
 		const QChar * pBegin = KVSP_curCharPointer;         \
 		int iLen = 0;                                       \
-		int iNestedTerminators = 0;                         \
+		[[maybe_unused]] int iNestedTerminators = 0;                         \
                                                             \
 		for(;;)                                             \
 		{                                                   \
@@ -3013,12 +3013,10 @@ KviKvsTreeNodeDataList * KviKvsParser::parseCommaSeparatedParameterList()
 		}                                                                                                         \
 		}                                                                                                         \
 		KVSP_ASSERT(false);                                                                                       \
-		return 0;                                                                                                 \
+		return nullptr;                                                                                           \
 		}
 
 LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseCommandLiteralParameter)
-Q_UNUSED(pStart);
-Q_UNUSED(iNestedTerminators);
 
 case 0:
 case '$':
@@ -3033,8 +3031,6 @@ case '\t':
 	LITERAL_PARAM_PARSING_FUNCTION_GENERIC_END
 
 	LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseStringLiteralParameter)
-	Q_UNUSED(pStart);
-	Q_UNUSED(iNestedTerminators);
 
 case 0:
 case '$':
@@ -3054,7 +3050,6 @@ LITERAL_PARAM_PARSING_FUNCTION_END
 */
 
 	LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseHashKeyLiteralParameter)
-	Q_UNUSED(pStart);
 
 case '{':
 	LITERAL_PARAM_PARSING_FUNCTION_WARN_NESTED_TERMINATOR
@@ -3072,7 +3067,6 @@ case ' ':
 	LITERAL_PARAM_PARSING_FUNCTION_GENERIC_END
 
 	LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseCommaSeparatedLiteralParameter)
-	Q_UNUSED(pStart);
 
 case '(':
 	LITERAL_PARAM_PARSING_FUNCTION_WARN_NESTED_TERMINATOR
@@ -3091,7 +3085,6 @@ case '\t':
 	LITERAL_PARAM_PARSING_FUNCTION_GENERIC_END
 
 	LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseSingleLiteralParameterInParenthesis)
-	Q_UNUSED(pStart);
 
 case '(':
 	LITERAL_PARAM_PARSING_FUNCTION_WARN_NESTED_TERMINATOR
@@ -3109,8 +3102,6 @@ case '\t':
 	LITERAL_PARAM_PARSING_FUNCTION_GENERIC_END
 
 	LITERAL_PARAM_PARSING_FUNCTION_BEGIN(parseBindingOperationLiteralParameter)
-	Q_UNUSED(pStart);
-	Q_UNUSED(iNestedTerminators);
 
 case 0:
 case '$':
@@ -3140,13 +3131,13 @@ KviKvsTreeNodeData * KviKvsParser::parseArrayIndex()
 				delete l;
 				warning(pBegin,__tr2qs_ctx("Unterminated array index","kvs"));
 				error(KVSP_curCharPointer,__tr2qs_ctx("Unexpected end of script in array index (missing ']' character?)","kvs"));
-				return 0;
+				return nullptr;
 			break;
 			case '\n':
 				delete l;
 				warning(pBegin,__tr2qs_ctx("Unterminated array index","kvs"));
 				error(KVSP_curCharPointer,__tr2qs_ctx("Unexpected end of line in array index (missing ']' character or unescaped newline)","kvs"));
-				return 0;
+				return nullptr;
 			break;
 			case ' ':
 			case '\t':
@@ -3167,7 +3158,7 @@ KviKvsTreeNodeData * KviKvsParser::parseArrayIndex()
 							error(KVSP_curCharPointer,__tr2qs_ctx("Unexpected character '%q' (Unicode %x) in array index: it should be already terminated","kvs"),KVSP_curCharPointer,KVSP_curCharUnicode);
 						break;
 					}
-					return 0;
+					return nullptr;
 				}
 				goto end_of_the_array_index;
 			break;
@@ -3180,7 +3171,7 @@ KviKvsTreeNodeData * KviKvsParser::parseArrayIndex()
 				{
 					// this is an error
 					delete l;
-					return 0;
+					return nullptr;
 				}
 				l->append(p);
 			}
@@ -3199,7 +3190,7 @@ KviKvsTreeNodeData * KviKvsParser::parseArrayIndex()
 				{
 					// error
 					delete l;
-					return 0;
+					return nullptr;
 				}
 				l->append(p);
 			}

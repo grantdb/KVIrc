@@ -165,7 +165,7 @@ void KviWindowListBase::switchWindow(bool bNext, bool bInContextOnly, bool bHigh
 
 void KviWindowListBase::wheelEvent(QWheelEvent * e)
 {
-	if(e->delta() > 0)
+	if(e->angleDelta().y() > 0)
 		switchWindow(false, false);
 	else
 		switchWindow(true, false);
@@ -215,7 +215,7 @@ QSize KviWindowListTitleWidget::sizeHint() const
 {
 	// if there is no handle there is nothing to paint.
 	if(!KVI_OPTION_BOOL(KviOption_boolShowTreeWindowListHandle))
-		return QSize(0, 0);
+		return { 0, 0 };
 
 	int h, w;
 	if(m_pParent->features() & QDockWidget::DockWidgetVerticalTitleBar)
@@ -229,10 +229,10 @@ QSize KviWindowListTitleWidget::sizeHint() const
 		h = 6;
 	}
 	QStyleOption opt(0);
-	opt.init(m_pParent);
+	opt.initFrom(m_pParent);
 	opt.state = QStyle::State_None;
 	//
-	return m_pParent->style()->sizeFromContents(QStyle::CT_Splitter, &opt, QSize(w, h), m_pParent).expandedTo(QApplication::globalStrut());
+	return m_pParent->style()->sizeFromContents(QStyle::CT_Splitter, &opt, QSize(w, h), m_pParent);
 }
 //
 // KviWindowListItem
@@ -366,7 +366,7 @@ void KviWindowListButton::drawButtonLabel(QPainter * pPainter)
 	if(KVI_OPTION_BOOL(KviOption_boolUseWindowListIrcContextIndicator))
 	{
 		iHeight -= KVI_WINDOWLISTBUTTON_CONTEXTINDICATORHEIGHT;
-		QColor base = palette().color(QPalette::Background);
+		QColor base = palette().color(QPalette::Window);
 		if(m_pWindow->console())
 		{
 			QColor cntx = KVI_OPTION_ICCOLOR(m_pWindow->console()->context()->id() % KVI_NUM_ICCOLOR_OPTIONS);
@@ -389,7 +389,7 @@ void KviWindowListButton::drawButtonLabel(QPainter * pPainter)
 			    iHeight - KVI_WINDOWLISTBUTTON_BOTTOM_MARGIN,
 			    iWidth - (KVI_WINDOWLISTBUTTON_LEFT_MARGIN + KVI_WINDOWLISTBUTTON_RIGHT_MARGIN),
 			    KVI_WINDOWLISTBUTTON_CONTEXTINDICATORHEIGHT,
-			    palette().brush(QPalette::Background));
+			    palette().brush(QPalette::Window));
 		}
 		iHeight -= KVI_WINDOWLISTBUTTON_CONTEXTINDICATORSPACING;
 	}
@@ -508,7 +508,7 @@ void KviWindowListButton::drawButtonLabel(QPainter * pPainter)
 	{
 		pPainter->setClipRect(cRect.right() - 15, cRect.y(), 10, cRect.height());
 		QColor base = pPainter->pen().color();
-		QColor bg = palette().color(QPalette::Background);
+		QColor bg = palette().color(QPalette::Window);
 		base.setRgb((base.red() + bg.red()) / 2, (base.green() + bg.green()) / 2, (base.blue() + bg.blue()) / 2);
 		pPainter->setPen(base);
 		pPainter->drawText(cRect, Qt::AlignLeft | Qt::AlignTop, szText);
@@ -840,7 +840,7 @@ KviWindowListItem * KviClassicWindowList::firstItem()
 	return m_pButtonList->first();
 }
 
-KviWindowListItem * KviClassicWindowList::lastItem(void)
+KviWindowListItem * KviClassicWindowList::lastItem()
 {
 	return m_pButtonList->last();
 }
@@ -850,7 +850,7 @@ KviWindowListItem * KviClassicWindowList::nextItem()
 	return m_pButtonList->next();
 }
 
-KviWindowListItem * KviClassicWindowList::prevItem(void)
+KviWindowListItem * KviClassicWindowList::prevItem()
 {
 	return m_pButtonList->prev();
 }

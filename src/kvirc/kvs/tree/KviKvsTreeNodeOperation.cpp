@@ -26,10 +26,9 @@
 #include "KviKvsTreeNodeData.h"
 #include "KviKvsRunTimeContext.h"
 #include "KviLocale.h"
+#include "KviRegExp.h"
 
-#include <QRegExp>
-
-#include <math.h>
+#include <cmath>
 
 KviKvsTreeNodeOperation::KviKvsTreeNodeOperation(const QChar * pLocation)
     : KviKvsTreeNodeInstruction(pLocation)
@@ -1227,9 +1226,7 @@ bool KviKvsTreeNodeOperationStringSubstitution::execute(KviKvsRunTimeContext * c
 	target->result()->asString(str);
 
 	bool bGlobal = szF.indexOf('g', Qt::CaseInsensitive) != -1;
-
-	//QRegExp re(szL,szF.indexOf('i',Qt::CaseInsensitive) == -1,szF.indexOf('w',Qt::CaseInsensitive) != -1);
-	QRegExp re(szL, szF.indexOf('i', Qt::CaseInsensitive) == -1 ? Qt::CaseSensitive : Qt::CaseInsensitive, szF.indexOf('w', Qt::CaseInsensitive) != -1 ? QRegExp::Wildcard : QRegExp::RegExp);
+	KviRegExp re(szL, szF.indexOf('i', Qt::CaseInsensitive) == -1 ? KviRegExp::CaseSensitive : KviRegExp::CaseInsensitive, szF.indexOf('w', Qt::CaseInsensitive) != -1 ? KviRegExp::Wildcard : KviRegExp::RegExp);
 
 	re.setMinimal(szF.indexOf('m', Qt::CaseInsensitive) != -1); // greedy or minimal ?
 

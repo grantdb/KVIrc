@@ -53,6 +53,7 @@
 #include "KviKvsVariantList.h"
 #include "KviIdentityProfileSet.h"
 #include "KviIrcMessage.h"
+#include "KviRegExp.h"
 
 #ifdef COMPILE_CRYPT_SUPPORT
 #include "KviCryptEngine.h"
@@ -62,7 +63,6 @@
 #include <QPixmap>
 #include <QDateTime>
 #include <QTextCodec>
-#include <QRegExp>
 #include <QByteArray>
 #include <QLocale>
 
@@ -81,7 +81,7 @@ void KviIrcServerParser::parseNumeric001(KviIrcMessage * msg)
 	// :prefix 001 target :Welcome to the Internet Relay Network <usermask>
 	// FIXME: #warning "SET THE USERMASK FROM SERVER"
 	QString szText = msg->connection()->decodeText(msg->safeTrailing());
-	QRegExp rx(" ([^ ]+)!([^ ]+)@([^ ]+)$");
+	KviRegExp rx(" ([^ ]+)!([^ ]+)@([^ ]+)$");
 	if(rx.indexIn(szText) != -1)
 	{
 		msg->connection()->userInfo()->setUnmaskedHostName(rx.cap(3));
@@ -269,6 +269,7 @@ void KviIrcServerParser::parseNumeric005(KviIrcMessage * msg)
 			 * CALLERID -> The server supports server side ignores via the +g user mode
 			 * ACCEPT -> The server supports server side ignore (deprecated by CALLERID)
 			 * LANGUAGE -> The server supports the LANGUAGE command (experimental, e.g. LANGUAGE=2,en,i-klingon)
+			 * UTF8ONLY -> The server supports only UTF-8 messages in both directions https://ircv3.net/specs/extensions/utf8-only
 			 */
 			if(kvi_strEqualCIN("PREFIX=(", p, 8))
 			{
@@ -374,6 +375,10 @@ void KviIrcServerParser::parseNumeric005(KviIrcMessage * msg)
 				msg->connection()->serverInfo()->setSupportsWhox(true);
 				if((!_OUTPUT_MUTE) && (!msg->haltOutput()) && KVI_OPTION_BOOL(KviOption_boolShowExtendedServerInfo))
 					msg->console()->outputNoFmt(KVI_OUT_SERVERINFO, __tr2qs("This server supports the WHOX, extra information will be retrieved"));
+			}
+			else if(kvi_strEqualCIN("UTF8ONLY", p, 8))
+			{
+				msg->connection()->setEncoding("UTF-8");
 			}
 		}
 		if((!_OUTPUT_MUTE) && (!msg->haltOutput()))
@@ -515,7 +520,7 @@ void KviIrcServerParser::parseNumericNames(KviIrcMessage * msg)
 			// ^  +a is a weird mode: it also breaks nicknames on some networks!
 			// not a valid first char(s) of nickname, must be a mode prefix
 
-			while(pServerInfo->isSupportedModePrefix(static_cast<unsigned char>(*aux)))
+			while(pServerInfo->isSupportedModePrefix(*aux))
 			{
 				// leading umode flag(s)
 				iFlags |= pServerInfo->modeFlagFromPrefixChar(*aux);
@@ -667,7 +672,7 @@ void KviIrcServerParser::parseNumericTopicWhoTime(KviIrcMessage * msg)
 
 	QString szDate;
 	QDateTime date;
-	date.setTime_t(t);
+	date.setSecsSinceEpoch(t);
 
 	switch(KVI_OPTION_UINT(KviOption_uintOutputDatetimeFormat))
 	{
@@ -680,7 +685,7 @@ void KviIrcServerParser::parseNumericTopicWhoTime(KviIrcMessage * msg)
 			szDate = date.toString(Qt::ISODate);
 			break;
 		case 2:
-			szDate = date.toString(Qt::SystemLocaleShortDate);
+			szDate = QLocale().toString(date, QLocale::ShortFormat);
 			break;
 	}
 
@@ -758,7 +763,7 @@ void getDateTimeStringFromCharTimeT(QString & szBuffer, const char * time_t_stri
 	if(bOk)
 	{
 		QDateTime date;
-		date.setTime_t(uTime);
+		date.setSecsSinceEpoch(uTime);
 
 		switch(KVI_OPTION_UINT(KviOption_uintOutputDatetimeFormat))
 		{
@@ -771,7 +776,7 @@ void getDateTimeStringFromCharTimeT(QString & szBuffer, const char * time_t_stri
 				szBuffer = date.toString(Qt::ISODate);
 				break;
 			case 2:
-				szBuffer = date.toString(Qt::SystemLocaleShortDate);
+				szBuffer = QLocale().toString(date, QLocale::ShortFormat);
 				break;
 		}
 	}
@@ -902,7 +907,7 @@ void KviIrcServerParser::parseNumericWhoReply(KviIrcMessage * msg)
 	bool bIrcOp = szFlag.indexOf('*') != -1;
 
 	KviCString trailing = msg->safeTrailing();
-	KviCString hops = trailing.getToken(' ');
+	KviCString hops = trailing.getToken(' ', true);
 	bool bHopsOk = false;
 	int iHops = hops.toInt(&bHopsOk);
 
@@ -938,7 +943,7 @@ void KviIrcServerParser::parseNumericWhoReply(KviIrcMessage * msg)
 				msg->console()->checkDefaultAvatar(e, szNick, szUser, szHost);
 			}
 			//still no avatar? check if the user is exposing the fact that he's got one
-			if(!e->avatar())
+			if(!e->avatar() && szReal.size() > 2)
 			{
 				if((szReal[0].unicode() == KviControlCodes::Color) && (szReal[1].unicode() & 4) && (szReal[2].unicode() == KviControlCodes::Reset))
 				{
@@ -1077,7 +1082,7 @@ void KviIrcServerParser::parseNumericWhospcrpl(KviIrcMessage * msg)
 					msg->console()->checkDefaultAvatar(e, szNick, szUser, szHost);
 				}
 				//still no avatar? check if the user is exposing the fact that he's got one
-				if(!e->avatar())
+				if(!e->avatar() && szReal.size() > 2)
 				{
 					if((szReal[0].unicode() == KviControlCodes::Color) && (szReal[1].unicode() & 4) && (szReal[2].unicode() == KviControlCodes::Reset))
 					{
@@ -1539,10 +1544,7 @@ void KviIrcServerParser::parseNumericWhoisAway(KviIrcMessage * msg)
 
 	if(!msg->haltOutput())
 	{
-		KviWindow * pOut = static_cast<KviWindow *>(msg->connection()->findQuery(szNk));
-
-		if(!pOut)
-			pOut = KVI_OPTION_BOOL(KviOption_boolWhoisRepliesToActiveWindow) ? msg->console()->activeWindow() : static_cast<KviWindow *>(msg->console());
+		KviWindow * pOut = KVI_OPTION_BOOL(KviOption_boolWhoisRepliesToActiveWindow) ? msg->console()->activeWindow() : static_cast<KviWindow *>(msg->console());
 		pOut->output(KVI_OUT_WHOISUSER, __tr2qs("%c\r!n\r%Q\r%c is away: %Q"),
 		    KviControlCodes::Bold, &szNk, KviControlCodes::Bold, &szWText);
 	}
@@ -1656,7 +1658,7 @@ void KviIrcServerParser::parseNumericWhoisChannels(KviIrcMessage * msg)
 	{
 		KviWindow * pOut = KVI_OPTION_BOOL(KviOption_boolWhoisRepliesToActiveWindow) ? msg->console()->activeWindow() : static_cast<KviWindow *>(msg->console());
 
-		QStringList sl = szChans.split(" ", QString::SkipEmptyParts);
+		QStringList sl = szChans.split(" ", Qt::SkipEmptyParts);
 		QString szChanList;
 
 		for(auto szCur : sl)
@@ -1754,7 +1756,7 @@ void KviIrcServerParser::parseNumericWhoisIdle(KviIrcMessage * msg)
 		{
 			QString szTmp;
 			QDateTime date;
-			date.setTime_t((time_t)uTime);
+			date.setSecsSinceEpoch(uTime);
 
 			switch(KVI_OPTION_UINT(KviOption_uintOutputDatetimeFormat))
 			{
@@ -1767,7 +1769,7 @@ void KviIrcServerParser::parseNumericWhoisIdle(KviIrcMessage * msg)
 					szTmp = date.toString(Qt::ISODate);
 					break;
 				case 2:
-					szTmp = date.toString(Qt::SystemLocaleShortDate);
+					szTmp = QLocale().toString(date, QLocale::ShortFormat);
 					break;
 			}
 
@@ -2080,7 +2082,7 @@ void KviIrcServerParser::parseNumericCreationTime(KviIrcMessage * msg)
 	KviChannelWindow * chan = msg->connection()->findChannel(szChan);
 	KviCString tmstr = msg->safeParam(2);
 	QDateTime date;
-	date.setTime_t((time_t)tmstr.toUInt());
+	date.setSecsSinceEpoch(tmstr.toUInt());
 
 	if(!tmstr.isUnsignedNum())
 	{
@@ -2100,7 +2102,7 @@ void KviIrcServerParser::parseNumericCreationTime(KviIrcMessage * msg)
 			szDate = date.toString(Qt::ISODate);
 			break;
 		case 2:
-			szDate = date.toString(Qt::SystemLocaleShortDate);
+			szDate = QLocale().toString(date, QLocale::ShortFormat);
 			break;
 	}
 
@@ -2404,7 +2406,7 @@ void KviIrcServerParser::parseNumericStats(KviIrcMessage * msg)
 		if(msg->paramCount() > 2)
 		{
 			KviCString szParms;
-			for(std::size_t i = 1; i < msg->paramCount(); ++i)
+			for(int i = 1; i < msg->paramCount(); ++i)
 			{
 				if(szParms.hasData())
 					szParms.append(' ');
@@ -3037,6 +3039,32 @@ void KviIrcServerParser::parseNumericSaslFail(KviIrcMessage * msg)
 		KviWindow * pOut = static_cast<KviWindow *>(msg->console());
 		QString szParam = msg->connection()->decodeText(msg->safeTrailing());
 		pOut->output(KVI_OUT_SERVERINFO, __tr2qs("SASL authentication error: %Q"), &szParam);
+	}
+
+	// Handle fallback if possible for SASL auth failure or dump if user mandates SASL
+	// and no fallback is available
+	if(msg->numeric() == 904)
+	{
+		if(msg->connection()->stateData()->sentSaslMethod() == QStringLiteral("EXTERNAL"))
+		{
+			if(!msg->connection()->target()->server()->saslNick().isEmpty() && !msg->connection()->target()->server()->saslPass().isEmpty())
+			{
+				KviWindow * pOut = static_cast<KviWindow *>(msg->console());
+				pOut->output(KVI_OUT_SERVERINFO, __tr2qs("Attempting fallback due to SASL failure."));
+				msg->connection()->sendFmtData("AUTHENTICATE PLAIN");
+				msg->connection()->stateData()->setSentSaslMethod(QStringLiteral("PLAIN"));
+				return;
+			}
+		}
+
+		if(KVI_OPTION_BOOL(KviOption_boolDropConnectionOnSaslFailure))
+		{
+			KviWindow * pOut = static_cast<KviWindow *>(msg->console());
+			pOut->output(KVI_OUT_SERVERINFO, __tr2qs("SASL auth failed. Dropping the connection."));
+			msg->connection()->sendFmtData("QUIT");
+			msg->connection()->abort();
+			return;
+		}
 	}
 
 	if(msg->connection()->stateData()->isInsideAuthenticate())

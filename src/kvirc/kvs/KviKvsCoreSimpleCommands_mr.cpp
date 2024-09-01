@@ -96,8 +96,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(me)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szText;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("text", KVS_PT_STRING, KVS_PF_OPTIONAL | KVS_PF_APPENDREMAINING, szText)
@@ -143,8 +141,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(mode)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szText;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("text", KVS_PT_STRING, KVS_PF_APPENDREMAINING, szText)
@@ -226,8 +222,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(nick)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szNick;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("nickname", KVS_PT_NONEMPTYSTRING, 0, szNick)
@@ -354,8 +348,8 @@ namespace KviKvsCoreSimpleCommands
 				openurl file://home/pragma/pippo.txt
 				openurl irc://irc.eu.dal.net:6667
 				openurl irc6://irc.ircd.it/#kvirc
-				openurl ircs://crypto.azzurra.org:9999
-				openurl ircs6://ngnet.azzurra.org:9999
+				openurl ircs://irc.azzurra.chat:9999
+				openurl ircs6://irc.azzurra.chat:9999
 				openurl ftp://ftp.localhost.net/pub/kvirc/
 				openurl mailto:users@domain.extension
 			[/example]
@@ -363,8 +357,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(openurl)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szUrl;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("url", KVS_PT_NONEMPTYSTRING, KVS_PF_APPENDREMAINING, szUrl)
@@ -410,7 +402,7 @@ namespace KviKvsCoreSimpleCommands
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 		if(KVI_OPTION_BOOL(KviOption_boolUseSystemUrlHandlers))
 		{
-			intptr_t iRet = (intptr_t)::ShellExecute(NULL, TEXT("open"), szUrl.toStdWString().c_str(), NULL, NULL, SW_SHOWNORMAL);
+			intptr_t iRet = (intptr_t)::ShellExecute(nullptr, TEXT("open"), szUrl.toStdWString().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 			if(iRet <= 32)
 			{
 				/*
@@ -510,8 +502,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(operwall)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szMessage;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("message", KVS_PT_NONEMPTYSTRING, KVS_PF_APPENDREMAINING, szMessage)
@@ -586,8 +576,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(option)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szName;
 		QString szValue;
 		KVSCSC_PARAMETERS_BEGIN
@@ -826,7 +814,7 @@ namespace KviKvsCoreSimpleCommands
 
 		QByteArray szEncodedChans = KVSCSC_pConnection->encodeText(szChans);
 
-		QStringList sl = szChans.split(",", QString::SkipEmptyParts);
+		QStringList sl = szChans.split(",", Qt::SkipEmptyParts);
 
 		if(szMsg.isEmpty())
 			szMsg = KVI_OPTION_STRING(KviOption_stringPartMessage);
@@ -1067,8 +1055,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(query)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szTargets, szText;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("targets", KVS_PT_NONEMPTYSTRING, 0, szTargets)
@@ -1079,7 +1065,7 @@ namespace KviKvsCoreSimpleCommands
 
 		KviQueryWindow * query;
 
-		QStringList sl = szTargets.split(",", QString::SkipEmptyParts);
+		QStringList sl = szTargets.split(",", Qt::SkipEmptyParts);
 		for(auto szNick : sl)
 		{
 			if(szNick.isEmpty())
@@ -1152,6 +1138,8 @@ namespace KviKvsCoreSimpleCommands
 			the -f switch is used. You can control all the [i]unexpected disconnection[/i]
 			options in the options dialog.
 			If the -q switch is specified, this command terminates KVIrc immediately.[br]
+			If the IRC context is disconnect but a delayed reconnect is pending,
+			the reconnect will be aborted.
 		@examples:
 			[example]
 				quit Time to sleep
@@ -1171,8 +1159,13 @@ namespace KviKvsCoreSimpleCommands
 		}
 		else
 		{
-			KVSCSC_REQUIRE_CONNECTION
-			KVSCSC_pWindow->context()->terminateConnectionRequest(KVSCSC_pSwitches->find('f', "force"), szReason, KVSCSC_pSwitches->find('u', "unexpected"));
+			if(!KVSCSC_pIrcContext) return KVSCSC_pContext->errorNoIrcContext();
+			if(KVSCSC_pConnection)
+				KVSCSC_pIrcContext->terminateConnectionRequest(KVSCSC_pSwitches->find('f',"force"),szReason,KVSCSC_pSwitches->find('u',"unexpected"));
+			else if(KVSCSC_pIrcContext->state() == KviIrcContext::PendingReconnection)
+				KVSCSC_pIrcContext->abortReconnect();
+			else
+				return KVSCSC_pContext->warningNoIrcConnection();
 		}
 		return true;
 	}
@@ -1210,10 +1203,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(raise)
 	{
-		Q_UNUSED(__pSwitches);
-		Q_UNUSED(__pParams);
-		Q_UNUSED(__pContext);
-
 		if(!g_pMainWindow->isVisible())
 			g_pMainWindow->show();
 		g_pMainWindow->raise();
@@ -1353,8 +1342,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(returnCKEYWORDWORKAROUND)
 	{
-		Q_UNUSED(__pSwitches);
-
 		if(KVSCSC_pParams->count() == 0)
 		{
 			KVSCSC_pContext->returnValue()->setNothing();
@@ -1400,8 +1387,6 @@ namespace KviKvsCoreSimpleCommands
 
 	KVSCSC(run)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szCommand;
 		QStringList l;
 		KVSCSC_PARAMETERS_BEGIN

@@ -38,7 +38,6 @@
 #include "KvsObject_painter.h"
 
 #include <QKeyEvent>
-#include <QDesktopWidget>
 #include <QWidget>
 #include <QToolTip>
 #include <QFont>
@@ -54,11 +53,8 @@
 #include <QPainter>
 #include <QApplication>
 #include <QPoint>
+#include <QScreen>
 #include <QContextMenuEvent>
-
-#ifdef COMPILE_KDE4_SUPPORT
-#include <KStatusBar>
-#endif
 
 KviKvsWidget::KviKvsWidget(KvsObject_widget * object, QWidget * par)
     : QWidget(par), m_pObject(object)
@@ -104,9 +100,9 @@ const char * const widgetattributes_tbl[] = {
 
 const QPalette::ColorRole colorrole_cod[] = {
 	QPalette::Window,
-	QPalette::Background,
+	QPalette::Window,
 	QPalette::WindowText,
-	QPalette::Foreground,
+	QPalette::WindowText,
 	QPalette::Base,
 	QPalette::AlternateBase,
 	QPalette::Text,
@@ -1088,7 +1084,7 @@ KVSO_CLASS_FUNCTION(widget, fontMetricsWidth)
 	KVSO_PARAMETERS_BEGIN(c)
 	KVSO_PARAMETER("string", KVS_PT_STRING, 0, m_szStr)
 	KVSO_PARAMETERS_END(c)
-	c->returnValue()->setInteger(widget()->fontMetrics().width(m_szStr));
+	c->returnValue()->setInteger(widget()->fontMetrics().horizontalAdvance(m_szStr));
 	return true;
 }
 
@@ -1110,7 +1106,7 @@ KVSO_CLASS_FUNCTION(widget, screenResolution)
 {
 	CHECK_INTERNAL_POINTER(widget())
 	KviKvsArray * a = new KviKvsArray();
-	QRect rect = g_pApp->desktop()->screenGeometry(g_pApp->desktop()->primaryScreen());
+	QRect rect = g_pApp->primaryScreen()->availableGeometry();
 	a->set(0, new KviKvsVariant((kvs_int_t)rect.width()));
 	a->set(1, new KviKvsVariant((kvs_int_t)rect.height()));
 	c->returnValue()->setArray(a);
@@ -1241,7 +1237,7 @@ KVSO_CLASS_FUNCTION(widget, mapFromGlobal)
 KVSO_CLASS_FUNCTION(widget, centerToScreen)
 {
 	CHECK_INTERNAL_POINTER(widget())
-	QRect rect = g_pApp->desktop()->screenGeometry(g_pApp->desktop()->primaryScreen());
+	QRect rect = g_pApp->primaryScreen()->availableGeometry();
 	widget()->move((rect.width() - widget()->width()) / 2, (rect.height() - widget()->height()) / 2);
 	return true;
 }
@@ -1289,11 +1285,19 @@ KVSO_CLASS_FUNCTION(widget, setForegroundColor)
 				QString szColor;
 				pColArray->asString(szColor);
 				// maybe a color name?
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 				color.setNamedColor(szColor);
+#else
+				color = QColor::fromString(szColor);
+#endif
 				if(!color.isValid())
 				{
-					// itsn't a color name: let try with an hex triplette
+					// isn't a color name: lets try with an hex triplet
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 					color.setNamedColor("#" + szColor);
+#else
+					color = QColor::fromString("#" + szColor);
+#endif
 					if(!color.isValid())
 					{
 						c->warning(__tr2qs_ctx("Not a valid color!", "objects"));
@@ -1372,11 +1376,19 @@ KVSO_CLASS_FUNCTION(widget, setBackgroundColor)
 				QString szColor;
 				pColArray->asString(szColor);
 				// maybe a color name?
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 				color.setNamedColor(szColor);
+#else
+				color = QColor::fromString(szColor);
+#endif
 				if(!color.isValid())
 				{
-					// itsn't a color name: let try with an hex triplette
+					// isn't a color name: lets try with an hex triplet
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 					color.setNamedColor("#" + szColor);
+#else
+					color = QColor::fromString("#" + szColor);
+#endif
 					if(!color.isValid())
 					{
 						c->warning(__tr2qs_ctx("Not a valid color!", "objects"));
@@ -1478,7 +1490,7 @@ KVSO_CLASS_FUNCTION(widget, windowTitle)
 KVSO_CLASS_FUNCTION(widget, isTopLevel)
 {
 	CHECK_INTERNAL_POINTER(widget())
-	c->returnValue()->setBoolean(widget()->isTopLevel());
+	c->returnValue()->setBoolean(widget()->isWindow());
 	return true;
 }
 
@@ -1825,10 +1837,10 @@ KVSO_CLASS_FUNCTION(widget, setWFlags)
 	KVSO_PARAMETERS_BEGIN(c)
 	KVSO_PARAMETER("widget_flags", KVS_PT_STRINGLIST, KVS_PF_OPTIONAL, wflags)
 	KVSO_PARAMETERS_END(c)
-	Qt::WindowFlags flag, sum = nullptr;
+	Qt::WindowFlags flag, sum;
 	for(auto & it : wflags)
 	{
-		flag = nullptr;
+		flag = Qt::WindowFlags();
 		for(size_t j{}; j < widgettypes_num; j++)
 		{
 			if(KviQString::equalCI(it, widgettypes_tbl[j]))
@@ -2155,7 +2167,7 @@ KVSO_CLASS_FUNCTION(widget, grab)
 
 	QPixmap * pPixmap = new QPixmap();
 	qDebug("grabbing");
-	*pPixmap = QPixmap::grabWidget(((QWidget *)(ob->object())));
+	*pPixmap = ((QWidget *)(ob->object()))->grab();
 	KviKvsObjectClass * pClass = KviKvsKernel::instance()->objectController()->lookupClass("pixmap");
 	KviKvsVariantList params;
 	KviKvsObject * pObject = pClass->allocateInstance(nullptr, "internalpixmap", c->context(), &params);

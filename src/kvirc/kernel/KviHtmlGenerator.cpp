@@ -37,6 +37,7 @@ namespace KviHtmlGenerator
 		bool bCurBold = false;
 		bool bCurItalic = false;
 		bool bCurUnderline = false;
+		bool bCurMonospace = false;
 		bool bIgnoreIcons = false;
 		bool bShowIcons = KVI_OPTION_BOOL(KviOption_boolDrawEmoticons);
 		unsigned char uCurFore = Foreground;
@@ -51,7 +52,7 @@ namespace KviHtmlGenerator
 			unsigned int uStart = uIdx;
 
 			while(
-			    (c != KviControlCodes::Color) && (c != KviControlCodes::Bold) && (c != KviControlCodes::Italic) && (c != KviControlCodes::Underline) && (c != KviControlCodes::Reverse) && (c != KviControlCodes::Reset) && (c != KviControlCodes::Icon) && ((c != ':') || bIgnoreIcons) && ((c != ';') || bIgnoreIcons) && ((c != '=') || bIgnoreIcons))
+			    (c != KviControlCodes::Color) && (c != KviControlCodes::Bold) && (c != KviControlCodes::Italic) && (c != KviControlCodes::Underline) && (c != KviControlCodes::Reverse) && (c != KviControlCodes::Reset) && (c != KviControlCodes::Icon) && (c != KviControlCodes::Monospace) && ((c != ':') || bIgnoreIcons) && ((c != ';') || bIgnoreIcons) && ((c != '=') || bIgnoreIcons))
 			{
 				bIgnoreIcons = false;
 				if(c == '&')
@@ -96,9 +97,9 @@ namespace KviHtmlGenerator
 				{
 					szResult.append("<span style=\"color:");
 					if(uCurFore == Background) // this is the result of reverse
-						szResult.append(KVI_OPTION_MIRCCOLOR(KviControlCodes::White).name());
+						szResult.append(getMircColor(KviControlCodes::White).name());
 					else
-						szResult.append(KVI_OPTION_MIRCCOLOR(uCurFore).name());
+						szResult.append(getMircColor(uCurFore).name());
 					bOpened = true;
 				}
 
@@ -114,9 +115,9 @@ namespace KviHtmlGenerator
 						szResult.append(";background-color:");
 					}
 					if(uCurBack == Foreground) // this is the result of reverse
-						szResult.append(KVI_OPTION_MIRCCOLOR(KviControlCodes::Black).name());
+						szResult.append(getMircColor(KviControlCodes::Black).name());
 					else
-						szResult.append(KVI_OPTION_MIRCCOLOR(uCurBack).name());
+						szResult.append(getMircColor(uCurBack).name());
 				}
 
 				if(bCurUnderline)
@@ -158,6 +159,19 @@ namespace KviHtmlGenerator
 					}
 				}
 
+				if(bCurMonospace)
+				{
+					if(!bOpened)
+					{
+						szResult.append("<span style=\"font-family:monospace");
+						bOpened = true;
+					}
+					else
+					{
+						szResult.append(";font-family:monospace");
+					}
+				}
+
 				if(bOpened)
 					szResult.append(";\">");
 
@@ -190,6 +204,12 @@ namespace KviHtmlGenerator
 				case KviControlCodes::Reverse:
 				{
 					std::swap(uCurFore, uCurBack);
+					++uIdx;
+					break;
+				}
+				case KviControlCodes::Monospace:
+				{
+					bCurMonospace = !bCurMonospace;
 					++uIdx;
 					break;
 				}
@@ -293,7 +313,7 @@ namespace KviHtmlGenerator
 								if(uCurBack != Background)
 								{
 									szResult.append("\" style=\"background-color:");
-									szResult.append(KVI_OPTION_MIRCCOLOR(uCurBack).name());
+									szResult.append(getMircColor(uCurBack).name());
 								}
 								szResult.append("\" />");
 							}
@@ -335,7 +355,7 @@ namespace KviHtmlGenerator
 							if(uCurBack != Background)
 							{
 								szResult.append("\" style=\"background-color:");
-								szResult.append(KVI_OPTION_MIRCCOLOR(uCurBack).name());
+								szResult.append(getMircColor(uCurBack).name());
 							}
 							szResult.append("\" />");
 						}

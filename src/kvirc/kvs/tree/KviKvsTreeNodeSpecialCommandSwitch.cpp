@@ -27,8 +27,7 @@
 #include "KviKvsTreeNodeInstruction.h"
 #include "KviKvsRunTimeContext.h"
 #include "KviLocale.h"
-
-#include <QRegExp>
+#include "KviRegExp.h"
 
 KviKvsTreeNodeSpecialCommandSwitchLabel::KviKvsTreeNodeSpecialCommandSwitchLabel(const QChar * pLocation)
     : KviKvsTreeNode(pLocation)
@@ -74,7 +73,7 @@ KviKvsTreeNodeSpecialCommandSwitchLabelCase::~KviKvsTreeNodeSpecialCommandSwitch
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelCase::contextDescription(QString & szBuffer)
 {
-	szBuffer = "Label \"case\" for Special Command \"switch\"";
+	szBuffer = R"(Label "case" for Special Command "switch")";
 }
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelCase::dump(const char * prefix)
@@ -168,7 +167,7 @@ KviKvsTreeNodeSpecialCommandSwitchLabelMatch::~KviKvsTreeNodeSpecialCommandSwitc
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelMatch::contextDescription(QString & szBuffer)
 {
-	szBuffer = "Label \"match\" for Special Command \"switch\"";
+	szBuffer = R"(Label "match" for Special Command "switch")";
 }
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelMatch::dump(const char * prefix)
@@ -192,9 +191,7 @@ bool KviKvsTreeNodeSpecialCommandSwitchLabelMatch::execute(KviKvsRunTimeContext 
 
 		QString reg;
 		v.asString(reg);
-
-		//QRegExp rx(reg,false,true);
-		QRegExp rx(reg, Qt::CaseInsensitive, QRegExp::Wildcard);
+		KviRegExp rx(reg, KviRegExp::CaseInsensitive, KviRegExp::Wildcard);
 		QString val;
 		pRealParameter->asString(val);
 
@@ -227,7 +224,7 @@ KviKvsTreeNodeSpecialCommandSwitchLabelRegexp::~KviKvsTreeNodeSpecialCommandSwit
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelRegexp::contextDescription(QString & szBuffer)
 {
-	szBuffer = "Label \"regexp\" for Special Command \"switch\"";
+	szBuffer = R"(Label "regexp" for Special Command "switch")";
 }
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelRegexp::dump(const char * prefix)
@@ -251,9 +248,7 @@ bool KviKvsTreeNodeSpecialCommandSwitchLabelRegexp::execute(KviKvsRunTimeContext
 
 		QString reg;
 		v.asString(reg);
-
-		//	QRegExp rx(reg,false,false);
-		QRegExp rx(reg, Qt::CaseInsensitive, QRegExp::RegExp);
+		KviRegExp rx(reg, KviRegExp::CaseInsensitive, KviRegExp::RegExp);
 		QString val;
 		pRealParameter->asString(val);
 
@@ -286,7 +281,7 @@ KviKvsTreeNodeSpecialCommandSwitchLabelDefault::~KviKvsTreeNodeSpecialCommandSwi
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelDefault::contextDescription(QString & szBuffer)
 {
-	szBuffer = "Label \"default\" for Special Command \"switch\"";
+	szBuffer = R"(Label "default" for Special Command "switch")";
 }
 
 void KviKvsTreeNodeSpecialCommandSwitchLabelDefault::dump(const char * prefix)

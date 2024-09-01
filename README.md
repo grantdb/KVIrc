@@ -1,7 +1,8 @@
 # ![KVIrc-Midnight](https://github.com/kvirc/KVIrc/wiki/images/KVIrc-midnight.png) KVIrc
 
-[![Travis Build Status](https://travis-ci.org/kvirc/KVIrc.svg?branch=master)](https://travis-ci.org/kvirc/KVIrc)
-[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/j6tjel0eaeyixcbn/branch/master?svg=true)](https://ci.appveyor.com/project/DarthGandalf/kvirc/branch/master)
+[![Linux build](https://github.com/kvirc/KVIrc/actions/workflows/build_linux_qt6.yml/badge.svg)](https://github.com/kvirc/KVIrc/actions/workflows/build_linux_qt6.yml)
+[![macOS build](https://github.com/kvirc/KVIrc/actions/workflows/build_macos.yml/badge.svg)](https://github.com/kvirc/KVIrc/actions/workflows/build_macos.yml)
+[![Windows build](https://github.com/kvirc/KVIrc/actions/workflows/build_windows.yml/badge.svg)](https://github.com/kvirc/KVIrc/actions/workflows/build_windows.yml)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/6841/badge.svg)](https://scan.coverity.com/projects/kvirc-coverity)
 
 <!--![KVIrc logo](../master/data/icons/128x128/kvirc.png "KVIrc - The visual IRC client for the masses!") -->
@@ -22,7 +23,7 @@ KVIrc is written by Szymon Stefanek and the KVIrc development team, with [contri
 * [KVIrc API](http://www.kvirc.net/api)
 * [How to submit a bug report](https://github.com/kvirc/KVIrc/wiki/Submitting-a-bug-report)
 * [Open a bug report or make a suggestion](https://github.com/kvirc/KVIrc/issues)
-* Talk to us - [Join #KVIrc](https://webchat.freenode.net?nick=kvirc-user&channels=%23kvirc&prompt=1&uio=OT10cnVlde) on freenode.net
+* Talk to us - #KVIrc on Irc.Libera.Chat
 
 ---
 

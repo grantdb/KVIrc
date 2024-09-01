@@ -182,7 +182,7 @@ SinglePopupEditor::SinglePopupEditor(QWidget * par)
 	m_pTestPopup = nullptr;
 
 	QGridLayout * g = new QGridLayout(this);
-	g->setMargin(0);
+	g->setContentsMargins(0, 0, 0, 0);
 	g->setSpacing(2);
 
 	m_pNameEditor = new QLineEdit(this);
@@ -227,7 +227,7 @@ SinglePopupEditor::SinglePopupEditor(QWidget * par)
 	g->addWidget(m_pTextEditor, 2, 1, 1, 2);
 
 	l = new QLabel(__tr2qs_ctx("Condition:", "editor"), this);
-	l->setMargin(2);
+	l->setContentsMargins(2, 2, 2, 2);
 	g->addWidget(l, 3, 0);
 
 	m_pConditionEditor = new QLineEdit(this);
@@ -236,7 +236,7 @@ SinglePopupEditor::SinglePopupEditor(QWidget * par)
 	g->addWidget(m_pConditionEditor, 3, 1, 1, 2);
 
 	l = new QLabel(__tr2qs_ctx("Icon:", "editor"), this);
-	l->setMargin(2);
+	l->setContentsMargins(2, 2, 2, 2);
 	g->addWidget(l, 4, 0);
 
 	m_pIconEditor = new QLineEdit(this);
@@ -245,7 +245,7 @@ SinglePopupEditor::SinglePopupEditor(QWidget * par)
 	g->addWidget(m_pIconEditor, 4, 1, 1, 2);
 
 	l = new QLabel(__tr2qs_ctx("External menu:", "editor"), this);
-	l->setMargin(2);
+	l->setContentsMargins(2, 2, 2, 2);
 	g->addWidget(l, 5, 0);
 
 	m_pExtNameEditor = new QLineEdit(this);
@@ -254,7 +254,7 @@ SinglePopupEditor::SinglePopupEditor(QWidget * par)
 	g->addWidget(m_pExtNameEditor, 5, 1, 1, 2);
 
 	l = new QLabel(__tr2qs_ctx("Item ID:", "editor"), this);
-	l->setMargin(2);
+	l->setContentsMargins(2, 2, 2, 2);
 	g->addWidget(l, 6, 0);
 
 	m_pIdEditor = new QLineEdit(this);
@@ -1148,9 +1148,8 @@ void PopupEditorWidget::popupRefresh(const QString & szName)
 			if(ch == m_pLastEditedItem)
 			{
 				if(
-				    QMessageBox::warning(nullptr, __tr2qs_ctx("Confirm Overwriting Current - KVIrc", "editor"),
-				        __tr2qs_ctx("An external script has changed the popup you are currently editing. Do you want to accept the external changes?", "editor"),
-				        QMessageBox::Yes, QMessageBox::No | QMessageBox::Default | QMessageBox::Escape) != QMessageBox::Yes)
+				    QMessageBox::question(nullptr, __tr2qs_ctx("Confirm Overwriting Current - KVIrc", "editor"),
+				        __tr2qs_ctx("An external script has changed the popup you are currently editing. Do you want to accept the external changes?", "editor")) != QMessageBox::Yes)
 					return;
 			}
 			KviKvsPopupMenu * pCopy = new KviKvsPopupMenu(szName);
@@ -1225,7 +1224,7 @@ void PopupEditorWidget::exportCurrentPopup()
 
 	if(!KviFileUtils::writeFile(szFile, szOut))
 	{
-		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the popups file.", "editor"), __tr2qs_ctx("OK", "editor"));
+		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the popups file.", "editor"));
 	}
 }
 
@@ -1275,7 +1274,7 @@ void PopupEditorWidget::exportPopups(bool bSelectedOnly)
 
 	if(!KviFileUtils::writeFile(szFile, out))
 	{
-		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the popups file.", "editor"), __tr2qs_ctx("OK", "editor"));
+		QMessageBox::warning(this, __tr2qs_ctx("Writing to File Failed - KVIrc", "editor"), __tr2qs_ctx("Unable to write to the popups file.", "editor"));
 	}
 }
 

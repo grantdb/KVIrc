@@ -49,13 +49,20 @@ public:
 
 protected: // protected members
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	virtual bool winEvent(MSG * msg, long * result);
+#else
+	virtual bool winEvent(MSG * msg, qintptr * result);
+#endif
 #elif defined(COMPILE_X11_SUPPORT) && defined(COMPILE_QX11INFO_SUPPORT)
 	virtual bool x11Event(XEvent * e);
 	bool x11GetRemoteMessage();
 #endif //!COMPILE_X11_SUPPORT
-
-	virtual bool nativeEvent(const QByteArray & id, void * msg, long * res);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	bool nativeEvent(const QByteArray & id, void * msg, long * res) override;
+#else
+	bool nativeEvent(const QByteArray & id, void * msg, qintptr * res) override;
+#endif
 };
 #endif //!COMPILE_NO_IPC
 

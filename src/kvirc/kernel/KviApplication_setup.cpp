@@ -37,7 +37,7 @@
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
 #include <shlwapi.h>
 #else
-#include <stdlib.h> // for getenv()
+#include <cstdlib> // for getenv()
 #include <unistd.h> // for symlink() <-- unused?
 
 #ifdef COMPILE_KDE_SUPPORT
@@ -63,10 +63,10 @@ static QLibrary * g_pSetupLibrary = nullptr;
 
 bool KviApplication::checkGlobalKvircDirectory(const QString szDir)
 {
-	//First check if the help subdir exists
-	QString szHelpDir = szDir;
-	szHelpDir += KVI_PATH_SEPARATOR "help";
-	if(!KviFileUtils::directoryExists(szHelpDir))
+	//First check if the config subdir exists
+	QString szConfigDir = szDir;
+	szConfigDir += KVI_PATH_SEPARATOR "config";
+	if(!KviFileUtils::directoryExists(szConfigDir))
 		return false;
 	//Then check if the pics subdir exists
 	QString szPicsDir = szDir;
@@ -115,22 +115,22 @@ void KviApplication::setupUriAssociations(const QString & szProto)
 
 	tmp = QString("Software\\Classes\\" + szProto).toStdWString();
 	SHDeleteKey(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str());
-	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
 	RegSetValueEx(hKey, 0, 0, REG_SZ, (LPBYTE)TEXT("URL:IRC Protocol"), 16 * 2 + 1);
 	RegSetValueEx(hKey, TEXT("URL Protocol"), 0, REG_SZ, (LPBYTE)"", 0);
 
 	tmp = QString("Software\\Classes\\" + szProto + "\\DefaultIcon").toStdWString();
-	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
 	tmp = QString(szAppPath + ",0").toStdWString();
 	RegSetValueEx(hKey, 0, 0, REG_SZ, (LPBYTE)tmp.c_str(), tmp.length() * 2 + 1);
 
 	tmp = QString("Software\\Classes\\" + szProto + "\\Shell\\open").toStdWString();
-	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
 	tmp = __tr2qs("Open with KVIrc").toStdWString();
 	RegSetValueEx(hKey, 0, 0, REG_SZ, (LPBYTE)tmp.c_str(), tmp.length() * 2 + 1);
 
 	tmp = QString("Software\\Classes\\" + szProto + "\\Shell\\open\\command").toStdWString();
-	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
 	tmp = QString(szAppPath + " --external \"%1\"").toStdWString();
 	RegSetValueEx(hKey, 0, 0, REG_SZ, (LPBYTE)tmp.c_str(), tmp.length() * 2 + 1);
 
@@ -150,7 +150,7 @@ void KviApplication::setFileAssociation(const QString & szExtension, const QStri
 
 	tmp = QString("Software\\Classes\\." + szExtension).toStdWString();
 	SHDeleteKey(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str());
-	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+	RegCreateKeyEx(HKEY_CURRENT_USER, (LPCWSTR)tmp.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr);
 	tmp = szClassName.toStdWString();
 	RegSetValueEx(hKey, 0, 0, REG_SZ, (LPBYTE)tmp.c_str(), tmp.length() * 2 + 1);
 
@@ -267,12 +267,27 @@ bool KviApplication::findLocalKvircDirectory()
 	if(m_szConfigFile.isEmpty())
 	{
 		// don't do that if user supplied a config file :)
-		KConfig oKCfg("kvirc");
-		KConfigGroup oKCfgMainGroup(&oKCfg, "Main");
 
-		m_szLocalKvircDir = oKCfgMainGroup.readEntry("LocalKvircDirectory");
+		// if a "kvirc" config exists, migrate its data to "kvircrc" and remove it
+		QFile oOldConfig(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+			 + QLatin1String("/kvirc"));
+		if(oOldConfig.exists())
+		{
+			QFile oNewConfig(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+			 + QLatin1String("/kvircrc"));
+			if(oOldConfig.open(QIODevice::ReadOnly) && oNewConfig.open(QIODevice::Append))
+			{
+				qDebug("Migrating old kde config to kvircrc");
+				oNewConfig.write(oOldConfig.readAll());
+				oOldConfig.remove();
+			}
+		}
+		KConfig kCfg(KVI_HOME_CONFIG_FILE_NAME);
+		KConfigGroup kCfgGroup(&kCfg, "Main");
 
-		unsigned int uSourcesDate = oKCfgMainGroup.readEntry("SourcesDate").toInt();
+		m_szLocalKvircDir = kCfgGroup.readEntry("LocalKvircDirectory");
+
+		unsigned int uSourcesDate = kCfgGroup.readEntry("SourcesDate").toInt();
 		if(uSourcesDate < KVI_SOURCES_DATE_NUMERIC_FORCE_SETUP)
 			return false; // we force a setup anyway
 
@@ -283,9 +298,11 @@ bool KviApplication::findLocalKvircDirectory()
 #endif //COMPILE_KDE_SUPPORT
 
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW)
+	const auto portable_file = QString("%1%2%3").arg(g_pApp->applicationDirPath()).arg(KVI_PATH_SEPARATOR_CHAR).arg("portable");
+	m_bPortable = KviFileUtils::fileExists(portable_file);
 	if(m_bPortable)
 	{
-		m_szLocalKvircDir = g_pApp->applicationDirPath() + KVI_PATH_SEPARATOR_CHAR + "Settings";
+		m_szLocalKvircDir = QString("%1%2%3").arg(g_pApp->applicationDirPath()).arg(KVI_PATH_SEPARATOR_CHAR).arg("Settings");
 		if(checkLocalKvircDirectory())
 			return true;
 	}
@@ -451,23 +468,18 @@ void KviApplication::saveKvircDirectory()
 {
 // Here we save the local directory path
 #ifdef COMPILE_KDE_SUPPORT
-	// In KDE we use the application config file
+	// In KDE we use the application config file $HOME/.config/kvircrc
 	if(m_szConfigFile.isEmpty())
 	{
 		// not if user supplied a config file
-		KConfig * pCfg = new KConfig("kvirc");
-		KConfigGroup * pCfgMainGroup = new KConfigGroup(pCfg, "Main");
-		if(pCfg)
+		KConfig kCfg(KVI_HOME_CONFIG_FILE_NAME);
+		if (kCfg.isConfigWritable(true))
 		{
-			if(pCfg->accessMode() == KConfig::ReadWrite)
-			{
-				pCfgMainGroup->writeEntry("LocalKvircDirectory", m_szLocalKvircDir);
-				pCfgMainGroup->writeEntry("SourcesDate", KVI_SOURCES_DATE_NUMERIC);
-				pCfg->sync();
-				delete pCfgMainGroup;
-				pCfgMainGroup = nullptr;
-				return;
-			}
+			KConfigGroup kCfgGroup(&kCfg, "Main");
+			kCfgGroup.writeEntry("LocalKvircDirectory", m_szLocalKvircDir);
+			kCfgGroup.writeEntry("SourcesDate", KVI_SOURCES_DATE_NUMERIC);
+			kCfgGroup.sync();
+			return;
 		}
 	}
 #endif //COMPILE_KDE_SUPPORT

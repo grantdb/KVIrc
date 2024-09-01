@@ -31,13 +31,15 @@
 
 #include <QRect>
 #include <QResizeEvent>
+#include <utility>
 
-NotifierMessage::NotifierMessage(QPixmap * pPixmap, const QString & szText)
-    : m_szText{szText}, m_pPixmap{pPixmap}
+NotifierMessage::NotifierMessage(QPixmap * pPixmap, QString szText)
+    : m_szText{ std::move(szText) }
+    , m_pPixmap{ pPixmap }
 {
 	m_pHBox = new QHBoxLayout(this);
 	m_pHBox->setSpacing(SPACING);
-	m_pHBox->setMargin(SPACING);
+	m_pHBox->setContentsMargins(SPACING, SPACING, SPACING, SPACING);
 
 	updateGui();
 }

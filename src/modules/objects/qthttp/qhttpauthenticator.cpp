@@ -50,6 +50,7 @@
 #include <qendian.h>
 #include <qstring.h>
 #include <qdatetime.h>
+#include <QRandomGenerator>
 
 //#define NTLMV1_CLIENT
 
@@ -284,7 +285,7 @@ void QHttpAuthenticator::detach()
 	if(!d)
 	{
 		d = new QHttpAuthenticatorPrivate;
-		d->ref.store(1);
+		d->ref.storeRelaxed(1);
 		return;
 	}
 
@@ -351,7 +352,7 @@ bool QHttpAuthenticator::isNull() const
 QHttpAuthenticatorPrivate::QHttpAuthenticatorPrivate()
     : ref(0), method(None), hasFailed(false), phase(Start), nonceCount(0)
 {
-	cnonce = QCryptographicHash::hash(QByteArray::number(qrand(), 16) + QByteArray::number(qrand(), 16),
+	cnonce = QCryptographicHash::hash(QByteArray::number(QRandomGenerator::global()->generate(), 16) + QByteArray::number(QRandomGenerator::global()->generate(), 16),
 	             QCryptographicHash::Md5)
 	             .toHex();
 	nonceCount = 0;
@@ -598,10 +599,11 @@ static QByteArray digestMd5ResponseHelper(
     )
 {
 	QCryptographicHash hash(QCryptographicHash::Md5);
+	QByteArray colon(":");
 	hash.addData(userName);
-	hash.addData(":", 1);
+	hash.addData(colon);
 	hash.addData(realm);
-	hash.addData(":", 1);
+	hash.addData(colon);
 	hash.addData(password);
 	QByteArray ha1 = hash.result();
 	if(alg.toLower() == "md5-sess")
@@ -612,9 +614,9 @@ static QByteArray digestMd5ResponseHelper(
 		// but according to the errata page at http://www.rfc-editor.org/errata_list.php, ID 1649, it
 		// must be the following line:
 		hash.addData(ha1.toHex());
-		hash.addData(":", 1);
+		hash.addData(colon);
 		hash.addData(nonce);
-		hash.addData(":", 1);
+		hash.addData(colon);
 		hash.addData(cNonce);
 		ha1 = hash.result();
 	};
@@ -623,11 +625,11 @@ static QByteArray digestMd5ResponseHelper(
 	// calculate H(A2)
 	hash.reset();
 	hash.addData(method);
-	hash.addData(":", 1);
+	hash.addData(colon);
 	hash.addData(digestUri);
 	if(qop.toLower() == "auth-int")
 	{
-		hash.addData(":", 1);
+		hash.addData(colon);
 		hash.addData(hEntity);
 	}
 	QByteArray ha2hex = hash.result().toHex();
@@ -635,17 +637,17 @@ static QByteArray digestMd5ResponseHelper(
 	// calculate response
 	hash.reset();
 	hash.addData(ha1);
-	hash.addData(":", 1);
+	hash.addData(colon);
 	hash.addData(nonce);
-	hash.addData(":", 1);
+	hash.addData(colon);
 	if(!qop.isNull())
 	{
 		hash.addData(nonceCount);
-		hash.addData(":", 1);
+		hash.addData(colon);
 		hash.addData(cNonce);
-		hash.addData(":", 1);
+		hash.addData(colon);
 		hash.addData(qop);
-		hash.addData(":", 1);
+		hash.addData(colon);
 	}
 	hash.addData(ha2hex);
 	return hash.result().toHex();
@@ -860,10 +862,10 @@ const quint8 hirespversion = 1;
 class QNtlmBuffer
 {
 public:
-	QNtlmBuffer() : len(0), maxLen(0), offset(0) {}
-	quint16 len;
-	quint16 maxLen;
-	quint32 offset;
+	QNtlmBuffer() {}
+	quint16 len{ 0 };
+	quint16 maxLen{ 0 };
+	quint32 offset{ 0 };
 	enum
 	{
 		Size = 8
@@ -1225,7 +1227,7 @@ static QByteArray qCreatev2Hash(const QHttpAuthenticatorPrivate * ctx,
 	{
 		QCryptographicHash md4(QCryptographicHash::Md4);
 		QByteArray passUnicode = qStringAsUcs2Le(ctx->password);
-		md4.addData(passUnicode.data(), passUnicode.size());
+		md4.addData(passUnicode);
 
 		QByteArray hashKey = md4.result();
 		Q_ASSERT(hashKey.size() == 16);
@@ -1313,7 +1315,7 @@ static QByteArray qEncodeNtlmv2Response(const QHttpAuthenticatorPrivate * ctx,
 		// 369 years, 89 leap years
 		// ((369 * 365) + 89) * 24 * 3600 = 11644473600
 
-		time = Q_UINT64_C(currentTime.toTime_t() + 11644473600);
+		time = Q_UINT64_C(currentTime.toSecsSinceEpoch() + 11644473600);
 
 		// represented as 100 nano seconds
 		time = Q_UINT64_C(time * 10000000);

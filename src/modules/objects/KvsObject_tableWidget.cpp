@@ -51,7 +51,7 @@ const int item_flags[] = {
 	Qt::ItemIsDropEnabled,
 	Qt::ItemIsUserCheckable,
 	Qt::ItemIsEnabled,
-	Qt::ItemIsTristate
+	Qt::ItemIsUserTristate
 };
 
 const char * const itemflags_tbl[] = {
@@ -336,11 +336,19 @@ KVSO_CLASS_FUNCTION(tableWidget, setForeground)
 				QString szColor;
 				pColArray->asString(szColor);
 				// maybe a color name?
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 				color.setNamedColor(szColor);
+#else
+				color = QColor::fromString(szColor);
+#endif
 				if(!color.isValid())
 				{
 					// isn't a color name: lets try with an hex triplet
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 					color.setNamedColor("#" + szColor);
+#else
+					color = QColor::fromString("#" + szColor);
+#endif
 					if(!color.isValid())
 					{
 						c->warning(__tr2qs_ctx("Not a valid color!", "objects"));
@@ -737,28 +745,24 @@ KVSO_CLASS_FUNCTION(tableWidget, setCellWidget)
 
 KVSO_CLASS_FUNCTION(tableWidget, hideHorizontalHeader)
 {
-	Q_UNUSED(c);
 	((QTableWidget *)widget())->horizontalHeader()->hide();
 	return true;
 }
 
 KVSO_CLASS_FUNCTION(tableWidget, hideVerticalHeader)
 {
-	Q_UNUSED(c);
 	((QTableWidget *)widget())->verticalHeader()->hide();
 	return true;
 }
 
 KVSO_CLASS_FUNCTION(tableWidget, showHorizontalHeader)
 {
-	Q_UNUSED(c);
 	((QTableWidget *)widget())->horizontalHeader()->show();
 	return true;
 }
 
 KVSO_CLASS_FUNCTION(tableWidget, showVerticalHeader)
 {
-	Q_UNUSED(c);
 	((QTableWidget *)widget())->verticalHeader()->show();
 	return true;
 }

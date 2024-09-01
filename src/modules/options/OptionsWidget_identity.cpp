@@ -39,6 +39,7 @@
 #include "KviIdentityProfileSet.h"
 #include "KviTalToolTip.h"
 #include "KviTalHBox.h"
+#include "KviRegExp.h"
 
 #include <QTreeWidget>
 #include <QCheckBox>
@@ -293,7 +294,7 @@ KviIdentityGeneralOptionsWidget::KviIdentityGeneralOptionsWidget(QWidget * paren
 	m_szAltNicknames[2] = KVI_OPTION_STRING(KviOption_stringNickname4);
 
 	createLayout();
-	layout()->setMargin(10);
+	layout()->setContentsMargins(10, 10, 10, 10);
 
 	KviTalGroupBox * gbox = addGroupBox(0, 0, 0, 0, Qt::Horizontal, __tr2qs_ctx("Basic Properties", "options"));
 	KviTalHBox * hb = new KviTalHBox(gbox);
@@ -306,7 +307,7 @@ KviIdentityGeneralOptionsWidget::KviIdentityGeneralOptionsWidget(QWidget * paren
 	                          "the server refuses to accept the default one.",
 	                  "options"));
 
-	QValidator * v = new QRegExpValidator(QRegExp("[^-0-9 ][^ ]*"), hb);
+	QValidator * v = new QRegularExpressionValidator(KviRegExp("[^-0-9 ][^ ]*"), hb);
 	sel->setValidator(v);
 
 	QPushButton * pb = new QPushButton(__tr2qs_ctx("Alternatives...", "options"), hb);
@@ -465,7 +466,7 @@ OptionsWidget_identityAvatar::OptionsWidget_identityAvatar(QWidget * parent)
     : KviOptionsWidget(parent)
 {
 	createLayout();
-	layout()->setMargin(10);
+	layout()->setContentsMargins(10, 10, 10, 10);
 
 	m_pLocalAvatar = new KviPixmap(KVI_OPTION_PIXMAP(KviOption_pixmapMyAvatar));
 
@@ -515,7 +516,7 @@ OptionsWidget_identityAvatar::~OptionsWidget_identityAvatar()
 	delete m_pLocalAvatar;
 }
 
-void OptionsWidget_identityAvatar::commit(void)
+void OptionsWidget_identityAvatar::commit()
 {
 	KviOptionsWidget::commit();
 
@@ -565,8 +566,7 @@ void OptionsWidget_identityAvatar::chooseAvatar()
 					    __tr2qs_ctx("Failed to load the avatar image.<br>"
 					                "It may be an inaccessible file or an "
 					                "unsupported image format.",
-					                         "options"),
-					    QMessageBox::Ok, QMessageBox::NoButton);
+					                         "options"));
 				} // else loaded!
 			}
 			else
@@ -576,7 +576,7 @@ void OptionsWidget_identityAvatar::chooseAvatar()
 				                                    "<b>%1</b>",
 				                            "options"))
 				                    .arg(dlg.errorMessage());
-				QMessageBox::warning(this, __tr2qs_ctx("Avatar Download Failed - KVIrc", "options"), szTmp, QMessageBox::Ok, QMessageBox::NoButton);
+				QMessageBox::warning(this, __tr2qs_ctx("Avatar Download Failed - KVIrc", "options"), szTmp);
 				szCurrent = "";
 				m_pLocalAvatar->setNull();
 			}
@@ -615,8 +615,7 @@ void OptionsWidget_identityAvatar::chooseAvatar()
 			    __tr2qs_ctx("Failed to load the avatar image.<br>"
 			                "It may be an inaccessible file or an "
 			                "unsupported image format.",
-			                         "options"),
-			    QMessageBox::Ok, QMessageBox::NoButton);
+			                         "options"));
 			szCurrent = "";
 		}
 	}
@@ -671,7 +670,7 @@ OptionsWidget_identityAdvanced::OptionsWidget_identityAdvanced(QWidget * parent)
 	m_bS = m_sModeStr.contains('s');
 
 	createLayout();
-	layout()->setMargin(10);
+	layout()->setContentsMargins(10, 10, 10, 10);
 
 	KviTalGroupBox * gbox = addGroupBox(0, 0, 0, 0, Qt::Horizontal, __tr2qs_ctx("User Mode", "options"));
 	m_pISelector = addBoolSelector(gbox, __tr2qs_ctx("Invisible (+i)", "options"), &m_bI);
@@ -866,7 +865,7 @@ void OptionsWidget_identityProfile::editProfileOkPressed()
 	{
 		if(m_pEditor->m_pNameEdit->text() == m_pTreeWidget->topLevelItem(i)->text(0) && i != m_iCurrentEditedProfile)
 		{
-			QMessageBox::warning(this, __tr2qs_ctx("Invalid Profile Rule - KVIrc", "options"), __tr2qs_ctx("There is already a profile with that name", "options"), __tr2qs_ctx("OK", "options"));
+			QMessageBox::warning(this, __tr2qs_ctx("Invalid Profile Rule - KVIrc", "options"), __tr2qs_ctx("There is already a profile with that name", "options"));
 			return;
 		}
 	}

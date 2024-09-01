@@ -26,7 +26,7 @@
 
 #include "kvi_settings.h"
 
-#ifdef COMPILE_KDE4_SUPPORT
+#ifdef COMPILE_KDE_SUPPORT
 #include "KviWindow.h"
 #include "KviCString.h"
 
@@ -43,12 +43,12 @@ protected:
 	TermWidget * m_pTermWidget;
 
 protected:
-	virtual QPixmap * myIconPtr();
-	virtual void fillCaptionBuffers();
-	virtual void resizeEvent(QResizeEvent * e);
+	QPixmap * myIconPtr() override;
+	void fillCaptionBuffers() override;
+	void resizeEvent(QResizeEvent * e) override;
 
 public:
-	virtual QSize sizeHint() const;
+	QSize sizeHint() const override;
 };
 #else
 #include <QObject>

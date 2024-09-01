@@ -494,15 +494,16 @@ bool KviIconWidget::eventFilter(QObject * pObject, QEvent * pEvent)
 			}
 			else
 			{
-				if(const QPixmap * pPix = ((QLabel *)pObject)->pixmap())
+				const QPixmap pPix = ((QLabel *)pObject)->pixmap(Qt::ReturnByValue);
+				if(!pPix.isNull())
 				{
 					QDrag * pDrag = new QDrag(this);
 					QMimeData * pMime = new QMimeData;
 
 					pMime->setText(pObject->objectName());
-					pMime->setImageData(*pPix);
+					pMime->setImageData(pPix);
 					pDrag->setMimeData(pMime);
-					pDrag->setPixmap(*pPix);
+					pDrag->setPixmap(pPix);
 				}
 			}
 		}
@@ -1966,7 +1967,7 @@ QPixmap * KviIconManager::loadSmallIcon(int iIdx)
 }
 
 #ifdef __GNUC__
-#warning IMPLEMENT CLEANUP
+//#warning IMPLEMENT CLEANUP
 #endif
 /*
 void KviIconManager::cacheCleanup()

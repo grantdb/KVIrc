@@ -42,8 +42,8 @@
 #include "kvi_settings.h"
 #include "KviCString.h"
 
-#define KVI_MIRCCOLOR_MAX_FOREGROUND 15
-#define KVI_MIRCCOLOR_MAX_BACKGROUND 15
+#define KVI_MIRCCOLOR_MAX 15
+#define KVI_EXTCOLOR_MAX 98
 
 // ASCII Stuff: the following defines are meant to be escape sequences
 //              that can go through an IRC connection
@@ -66,11 +66,11 @@
 // 008 BS  Backspace                  (Should not be assigned: terminal control)
 // 009 HT  Horizontal tabulation      (Should not be assigned: terminal control)
 // 010 LF  Line feed                  (Should not be assigned: terminal control)
-// 011 VT  Vertical tabulation        (Should not be assigned: terminal control)
+// 011 VT  Vertical tabulation        ( Monospace text )
 // 012 FF  Form feed                  (Should not be assigned: terminal control)
 // 013 CR  Carriage return            (Should not be assigned: terminal control)
 // 014 SO  Shift out                  (Should not be assigned: terminal control)
-// 015 SI  Shift in                   ( Resets Bold,Color,Underline and Reverse ) (Conflicting with terminal control)
+// 015 SI  Shift in                   ( Resets Bold,Color,Underline,Monospace and Reverse ) (Conflicting with terminal control)
 // 016 DLE Data link escape           (Decent, can be assigned)
 // 017 DC1 Device control 1           (Good to be assigned)
 // 018 DC2 Device control 2           (Good to be assigned)
@@ -157,6 +157,7 @@ namespace KviControlCodes
 		UnIcon = 0x06,      /**< Unicon, totally artificial and internal to KviIrcView */
 		ArbitraryBreak = UnIcon, /**< Arbitrary block break, totally artificial and internal to KviIrcView */
 		Reset = 0x0f,       /**< Reset */
+		Monospace = 0x11,   /**< Monospace */
 		Reverse = 0x16,     /**< Reverse */
 		Icon = 0x1c,        /**< Icon, KVIrc control code */
 		Italic = 0x1d,      /**< Italic */
@@ -179,6 +180,8 @@ namespace KviControlCodes
 	inline const QChar * getUnicodeColorBytes(const QChar * pData, unsigned char * pcByte1, unsigned char * pcByte2)
 		{ return (QChar *)getColorBytesW((const kvi_wchar_t *)pData,pcByte1,pcByte2); }
 #endif
+
+	KVILIB_API kvi_u32_t getExtendedColor(int index);
 }
 
 #endif //_KVI_CONTROLCODES_H_

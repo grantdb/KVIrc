@@ -19,9 +19,11 @@ Name "@NICENAME@"
 !define PUBLISHER 'Szymon Stefanek and The KVIrc Development Team'
 
 ; Git release, e.g. KVIrc-4.3.2-dev-git-5465-ge352609.exe
-OutFile KVIrc-${KVIRC_BUILD_REVISION}.exe
+;OutFile KVIrc-${KVIRC_BUILD_REVISION}.exe
 ; Stable version, e.g. KVIrc-4.2.0-Equilibrium.exe
 ;OutFile KVIrc-${VERSION}-${RELEASE_NAME}.exe
+; Github CI
+OutFile KVIrc.exe
 
 Unicode true
 SetCompressor /SOLID lzma
@@ -76,6 +78,48 @@ LangString KVIrcIsRunning ${LANG_ENGLISH} "An instance of KVIrc is currently run
 LangString WinVerUnsupported ${LANG_ENGLISH} "KVIrc does not support the currently running Windows version.$\r$\nWindows 7 or higher is required."
 
 !include ".\translations\*.nsi"
+
+Function TrimQuotes
+Exch $R0
+Push $R1
+
+  StrCpy $R1 $R0 1
+  StrCmp $R1 `"` 0 +2
+    StrCpy $R0 $R0 `` 1
+  StrCpy $R1 $R0 1 -1
+  StrCmp $R1 `"` 0 +2
+    StrCpy $R0 $R0 -1
+
+Pop $R1
+Exch $R0
+FunctionEnd
+
+Function GetParent
+
+  Exch $R0
+  Push $R1
+  Push $R2
+  Push $R3
+
+  StrCpy $R1 0
+  StrLen $R2 $R0
+
+  loop:
+    IntOp $R1 $R1 + 1
+    IntCmp $R1 $R2 get 0 get
+    StrCpy $R3 $R0 1 -$R1
+    StrCmp $R3 "\" get
+  Goto loop
+
+  get:
+    StrCpy $R0 $R0 -$R1
+
+    Pop $R3
+    Pop $R2
+    Pop $R1
+    Exch $R0
+
+FunctionEnd
 
 ;--------------------------------
 ; Sections
@@ -191,7 +235,16 @@ check64:
     ;Run the uninstaller
 uninst:
     ClearErrors
-    ExecWait "$R0"
+    ; R0 contains the quoted full path to uninstall.exe
+    Push $R0
+    Call TrimQuotes
+    Call GetParent
+    Pop $R0
+    ; at this point $R0 will equal to "C:\Program Files\KVirc"
+    InitPluginsDir
+    CreateDirectory "$pluginsdir\unold"
+    CopyFiles /SILENT /FILESONLY "$R0\uninstall.exe" "$pluginsdir\unold"
+    ExecWait '"$pluginsdir\unold\uninstall.exe" _?=$R0'
 
 done:
 
@@ -261,6 +314,11 @@ SectionEnd
 
 Function un.onInit
   !insertmacro MUI_UNGETLANGUAGE
+
+  ${If} ${RunningX64}
+    SetRegView 64
+  ${EndIf}
+
   Call un.CloseKVIrcInstances
 FunctionEnd
 

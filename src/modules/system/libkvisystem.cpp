@@ -41,7 +41,7 @@
 
 #if !defined(COMPILE_ON_WINDOWS) && !defined(COMPILE_ON_MINGW)
 #include <sys/utsname.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #endif
 
@@ -50,12 +50,11 @@
 #endif
 
 #ifdef COMPILE_KDE_SUPPORT
-#include <KToolInvocation> // invokeTerminal() for system.runcmd
-#else                      // tools we need to work around the absence of
+#include <KTerminalLauncherJob>
+#endif
 // invokeTerminal()
 #include <QProcess>
 #include <QStringList>
-#endif
 
 PluginManager * g_pPluginManager;
 
@@ -574,24 +573,28 @@ static bool system_kvs_fnc_dbus(KviKvsModuleFunctionCall * c)
 	QString szRetType;
 	foreach(QVariant v, reply.arguments())
 	{
+#if(QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 		switch(v.type())
+#else
+		switch(v.typeId())
+#endif
 		{
-			case QVariant::Bool:
+			case QMetaType::Bool:
 				c->returnValue()->setInteger(v.toBool() ? 1 : 0);
 				break;
-			case QVariant::String:
+			case QMetaType::QString:
 				c->returnValue()->setString(v.toString());
 				break;
-			case QVariant::ByteArray:
+			case QMetaType::QByteArray:
 				c->returnValue()->setString(v.toByteArray().data());
 				break;
-			case QVariant::UInt:
+			case QMetaType::UInt:
 				c->returnValue()->setInteger(v.toUInt());
 				break;
-			case QVariant::Int:
+			case QMetaType::Int:
 				c->returnValue()->setInteger(v.toInt());
 				break;
-			case QVariant::StringList:
+			case QMetaType::QStringList:
 			{
 				QStringList csl(v.toStringList());
 				KviKvsArray * arry = new KviKvsArray();
@@ -604,7 +607,7 @@ static bool system_kvs_fnc_dbus(KviKvsModuleFunctionCall * c)
 				c->returnValue()->setArray(arry);
 				break;
 			}
-			case QVariant::Invalid:
+			case QMetaType::UnknownType:
 				//method returns void
 				c->returnValue()->setString("");
 				break;
@@ -758,10 +761,10 @@ static bool system_kvs_cmd_runcmd(KviKvsModuleCommandCall * c)
 	}
 
 #ifdef COMPILE_KDE_SUPPORT // We have invokeTerminal().
-
-	KToolInvocation::invokeTerminal(szCommand.toLocal8Bit());
-
-#else                                                        // No invokeTerminal() for us, we'll use a
+	auto job = new KTerminalLauncherJob(szCommand);
+	job->start();
+#else
+	// No invokeTerminal() for us, we'll use a
 	// combination of QStringList and QProcess.
 	QStringList szTerminals;
 #if defined(COMPILE_ON_WINDOWS) || defined(COMPILE_ON_MINGW) // Only »cmd.exe /k« in the list.

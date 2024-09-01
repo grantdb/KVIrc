@@ -111,11 +111,8 @@ KVSO_BEGIN_DESTRUCTOR(KvsObject_vBox)
 
 KVSO_END_CONSTRUCTOR(KvsObject_vBox)
 
-bool KvsObject_vBox::init(KviKvsRunTimeContext * pContext, KviKvsVariantList * pParams)
+bool KvsObject_vBox::init(KviKvsRunTimeContext *, KviKvsVariantList *)
 {
-	Q_UNUSED(pContext);
-	Q_UNUSED(pParams);
-
 	SET_OBJECT(KviTalVBox);
 	return true;
 }
@@ -127,7 +124,7 @@ KVSO_CLASS_FUNCTION(vBox, setMargin)
 	KVSO_PARAMETERS_BEGIN(c)
 	KVSO_PARAMETER("margin", KVS_PT_INT, 0, iMargin)
 	KVSO_PARAMETERS_END(c)
-	((KviTalVBox *)widget())->setMargin(iMargin);
+	((KviTalVBox *)widget())->setContentsMargins(iMargin, iMargin, iMargin, iMargin);
 	return true;
 }
 

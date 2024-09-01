@@ -34,7 +34,8 @@
 #include <QRect>
 #include <QString>
 #include <QStringList>
-#include <stdio.h>
+#include <cstdio>
+#include <array>
 
 QString g_szGlobalDir;
 QString g_szLocalDir;
@@ -145,7 +146,7 @@ namespace KviStringConversion
 
 	void toString(const QRect & rValue, QString & szBuffer)
 	{
-		szBuffer.sprintf("%d,%d,%d,%d", rValue.x(), rValue.y(), rValue.width(), rValue.height());
+		szBuffer = QString::asprintf("%d,%d,%d,%d", rValue.x(), rValue.y(), rValue.width(), rValue.height());
 	}
 
 	bool fromString(const QString & szValue, QRect & buffer)
@@ -195,7 +196,7 @@ namespace KviStringConversion
 
 	void toString(const KviMessageTypeSettings & mValue, QString & szBuffer)
 	{
-		szBuffer.sprintf("%d,%u,%u,%d,%d", mValue.m_iPixId, mValue.m_cForeColor, mValue.m_cBackColor, mValue.m_bLogEnabled, mValue.m_iLevel);
+		szBuffer = QString::asprintf("%d,%u,%u,%d,%d", mValue.m_iPixId, mValue.m_cForeColor, mValue.m_cBackColor, mValue.m_bLogEnabled, mValue.m_iLevel);
 	}
 
 	bool fromString(const QString & szValue, KviMessageTypeSettings & buffer)
@@ -219,14 +220,17 @@ namespace KviStringConversion
 
 	bool fromString(const QString & szValue, QColor & buffer)
 	{
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 		buffer.setNamedColor(szValue);
+#else
+		buffer = QColor::fromString(szValue);
+#endif
 		return true;
 	}
 
 	void toString(const QFont & font, QString & szBuffer)
 	{
 		QString szFamily(font.family());
-		szBuffer.sprintf("%s,%d,%d,%d", szFamily.toUtf8().data(), font.pointSize(), font.styleHint(), font.weight());
 		QString szOptions;
 		if(font.bold())
 			szOptions.append('b');
@@ -239,11 +243,37 @@ namespace KviStringConversion
 		if(font.fixedPitch())
 			szOptions.append('f');
 
-		if(!szOptions.isEmpty())
-		{
-			szBuffer.append(',');
-			szBuffer.append(szOptions);
+		szBuffer = QString::asprintf("%s,%d,%d,%d,%s,%s", szFamily.toUtf8().data(), font.pointSize(), font.styleHint(), font.weight(), szOptions.toUtf8().data(), font.styleName().toUtf8().data());
+	}
+
+	/* Helper function to convert Qt < 6.0 font weight to OpenType font weight */
+	static int fromLegacyWeight(int weight)
+	{
+		static constexpr std::array<int, 2> weightMap[] = {
+			{ 0, QFont::Thin },
+			{ 12, QFont::ExtraLight },
+			{ 25, QFont::Light },
+			{ 50, QFont::Normal },
+			{ 57, QFont::Medium },
+			{ 63, QFont::DemiBold },
+			{ 75, QFont::Bold },
+			{ 81, QFont::ExtraBold },
+			{ 87, QFont::Black },
+		};
+
+		int closestDist = INT_MAX;
+		int result = -1;
+		for (auto item: weightMap) {
+			const int dist = qAbs(item[0] - weight);
+			if (dist < closestDist) {
+				result = item[1];
+				closestDist = dist;
+			} else {
+				break;
+			}
 		}
+
+		return result;
 	}
 
 	bool fromString(const QString & szValue, QFont & buffer)
@@ -254,6 +284,7 @@ namespace KviStringConversion
 		str.getToken(pointSize, ',');
 		str.getToken(styleHint, ',');
 		str.getToken(weight, ',');
+		str.getToken(options, ',');
 		if(!family.isEmpty())
 			buffer.setFamily(family.ptr());
 		int i;
@@ -265,14 +296,28 @@ namespace KviStringConversion
 		if(bOk && (i >= 0))
 			buffer.setStyleHint((QFont::StyleHint)i);
 		i = weight.toInt(&bOk);
-		if(bOk && (i >= 0))
+		if(bOk && (i >= 0)) {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 			buffer.setWeight(i);
-
-		buffer.setBold(str.contains("b"));
-		buffer.setItalic(str.contains("i"));
-		buffer.setUnderline(str.contains("u"));
-		buffer.setStrikeOut(str.contains("s"));
-		buffer.setFixedPitch(str.contains("f"));
+#else
+			/*
+			 * KVIrc <= 5.2.2 used Qt5 font weights (0 = thinner, 99 = bolder)
+			 * Qt6 introduced opentype (css) font weight (100 = thinner, 900 = bolder)
+			 * if the config is using an old weight, convert it
+			 */
+			if(i < 100) {
+				i = KviStringConversion::fromLegacyWeight(i);
+			}
+			buffer.setWeight(QFont::Weight(i));
+#endif
+		}
+		buffer.setBold(options.contains("b"));
+		buffer.setItalic(options.contains("i"));
+		buffer.setUnderline(options.contains("u"));
+		buffer.setStrikeOut(options.contains("s"));
+		buffer.setFixedPitch(options.contains("f"));
+		if(!str.isEmpty())
+			buffer.setStyleName(str.ptr());
 		return true;
 	}
 

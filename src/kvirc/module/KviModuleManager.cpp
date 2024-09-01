@@ -175,8 +175,6 @@ bool KviModuleManager::loadModule(const QString & modName)
 	}
 
 	QLibrary * pLibrary = new QLibrary(tmp);
-	pLibrary->setLoadHints(QLibrary::ExportExternalSymbolsHint);
-
 	if(!pLibrary->load())
 	{
 		m_szLastError = pLibrary->errorString();
@@ -265,7 +263,7 @@ bool KviModuleManager::loadModule(const QString & modName)
 		if(g_pMainWindow)
 		{
 			KviConsoleWindow * pWnd = g_pMainWindow->firstConsole();
-			if(pWnd) // this may be NULL when the app is starting up
+			if(pWnd) // this may be nullptr when the app is starting up
 				pWnd->output(
 				    KVI_OUT_VERBOSE,
 				    __tr2qs("Loaded module '%s' (%s)"),

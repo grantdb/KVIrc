@@ -30,8 +30,8 @@
 #include "KviIrcConnection.h"
 #include "KviLocale.h"
 #include "KviKvsTreeNodeCommand.h"
+#include "KviRegExp.h"
 
-#include <QRegExp>
 #include <QStringList>
 
 namespace KviKvsCoreSimpleCommands
@@ -151,8 +151,6 @@ namespace KviKvsCoreSimpleCommands
 
 	bool multipleModeCommand(KviKvsRunTimeContext * __pContext, KviKvsVariantList * __pParams, KviKvsSwitchList * __pSwitches, char plusminus, char flag)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szTokens;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("tokens", KVS_PT_STRING, KVS_PF_APPENDREMAINING, szTokens)
@@ -166,7 +164,7 @@ namespace KviKvsCoreSimpleCommands
 			return true;
 		}
 
-		QStringList sl = szTokens.split(QRegExp("[, ]+"), QString::SkipEmptyParts);
+		QStringList sl = szTokens.split(KviRegExp("[, ]+"), Qt::SkipEmptyParts);
 
 		QByteArray szFlags;
 		QByteArray szTarget = KVSCSC_pConnection->encodeText(KVSCSC_pWindow->windowName());
@@ -246,7 +244,7 @@ namespace KviKvsCoreSimpleCommands
 			Wrappers for RFC2812 commands
 		@body:
 			Some less used KVIrc commands are implemented as simple wrappers
-			around the standard [doc]rfc2812[/doc] commands.[br]
+			around the standard [anchorlink:https://tools.ietf.org/html/rfc2812]rfc2812[/anchorlink] commands.[br]
 			For example, the /[cmd:oper]OPER[/cmd] command will be used only by server operators
 			and probably only once per connection.[br]
 			These commands should only be needed by experienced IRC users.
@@ -258,13 +256,11 @@ namespace KviKvsCoreSimpleCommands
 			The exact parameter syntax/semantic checking is left to you.[br]
 			This also means that if some of these commands accept parameters with spaces,
 			it is left to you to add the leading ':' before the last parameter.[br]
-			You should refer to [doc]rfc2812[/doc] if any of these commands do not work properly for you.[br]
+			You should refer to [anchorlink:https://tools.ietf.org/html/rfc2812]rfc2812[/anchorlink] if any of these commands do not work properly for you.[br]
 	*/
 
 	KVSCSC(rfc2812wrapper)
 	{
-		Q_UNUSED(__pSwitches);
-
 		QString szText;
 		KVSCSC_PARAMETERS_BEGIN
 		KVSCSC_PARAMETER("text", KVS_PT_STRING, KVS_PF_OPTIONAL | KVS_PF_APPENDREMAINING, szText)

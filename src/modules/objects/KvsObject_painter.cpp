@@ -887,7 +887,7 @@ KVSO_CLASS_FUNCTION(painter, drawRoundRect)
 	KVSO_PARAMETERS_END(c)
 	QString function = "$drawRoundRect";
 	KVSO_PARAMETERS_PAINTER(pXOrArray, iY, iW, iH)
-	m_pPainter->drawRoundRect(iX, iY, iW, iH, iXrnd, iYrnd);
+	m_pPainter->drawRoundedRect(iX, iY, iW, iH, iXrnd, iYrnd);
 	return true;
 }
 
@@ -1140,7 +1140,7 @@ KVSO_CLASS_FUNCTION(painter, fontMetricsWidth)
 	KVSO_PARAMETER("text", KVS_PT_STRING, 0, szText)
 	KVSO_PARAMETERS_END(c)
 	if(m_pPainter->isActive())
-		c->returnValue()->setInteger(m_pPainter->fontMetrics().width(szText));
+		c->returnValue()->setInteger(m_pPainter->fontMetrics().horizontalAdvance(szText));
 	else
 		c->warning(__tr2qs_ctx("$fontMetricsWidth: the painter is not active!", "objects"));
 	return true;
@@ -1193,7 +1193,7 @@ KVSO_CLASS_FUNCTION(painter, begin)
 				QPrintDialog printDialog(m_pPrinter, nullptr);
 				if(printDialog.exec() == QDialog::Accepted)
 				{
-					qDebug("papersize %d", m_pPrinter->paperSize());
+					qDebug("papersize %d", m_pPrinter->pageLayout().pageSize().id());
 					m_pPainter->begin(m_pPrinter);
 					return true;
 				}
@@ -1271,8 +1271,6 @@ void KvsObject_painter::detachDevice()
 
 KVSO_CLASS_FUNCTION(painter, end)
 {
-	Q_UNUSED(c);
-
 	if(!m_pDeviceObject)
 	{
 		m_pPainter->end();
@@ -1958,7 +1956,6 @@ KVSO_CLASS_FUNCTION(painter, setGradientAsBrush)
 
 KVSO_CLASS_FUNCTION(painter, clearGradient)
 {
-	Q_UNUSED(c);
 	if(!m_pGradient)
 		delete m_pGradient;
 	m_pGradient = nullptr;
@@ -2010,7 +2007,11 @@ KVSO_CLASS_FUNCTION(painter, fillRect)
 				return true;
 			}
 		}
+#if (QT_VERSION < QT_VERSION_CHECK(6, 4, 0))
 		col.setNamedColor(szColor);
+#else
+		col = QColor::fromString(szColor);
+#endif
 		col.setAlpha(iOpacity);
 	}
 	else
@@ -2113,7 +2114,7 @@ KVSO_CLASS_FUNCTION(painter, drawPath)
 	CHECK_INTERNAL_POINTER(m_pPainter)
 	m_pPainter->drawPath(*m_pPainterPath);
 	//delete m_pPainterPath;
-	//m_pPainterPath=0;
+	//m_pPainterPath=nullptr;
 	return true;
 }
 
@@ -2144,7 +2145,6 @@ KVSO_CLASS_FUNCTION(painter, setCompositionMode)
 }
 KVSO_CLASS_FUNCTION(painter, resetPath)
 {
-	Q_UNUSED(c);
 	if(m_pPainterPath)
 	{
 		delete m_pPainterPath;
